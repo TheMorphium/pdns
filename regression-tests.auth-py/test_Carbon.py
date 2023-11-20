@@ -34,7 +34,7 @@ class TestCarbon(AuthTest):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the Carbon responder: %s" % str(e))
+            print(f"Error binding in the Carbon responder: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -43,11 +43,11 @@ class TestCarbon(AuthTest):
             conn.settimeout(2.0)
             lines = b''
             while True:
-                data = conn.recv(4096)
-                if not data:
-                    break
-                lines += data
+                if data := conn.recv(4096):
+                    lines += data
 
+                else:
+                    break
             if port == cls._carbonServer1Port:
                 cls._carbonQueue1.put(lines, True, timeout=2.0)
             else:

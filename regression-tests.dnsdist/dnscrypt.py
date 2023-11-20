@@ -30,7 +30,7 @@ class DNSCryptResolverCertificate(object):
         if len(binary) != 124:
             raise Exception("Invalid binary certificate")
 
-        certMagic = binary[0:4]
+        certMagic = binary[:4]
         esVersion = binary[4:6]
         protocolMinVersion = binary[6:8]
 
@@ -39,7 +39,7 @@ class DNSCryptResolverCertificate(object):
 
         orig = libnacl.crypto_sign_open(binary[8:124], providerFP)
 
-        resolverPK = orig[0:32]
+        resolverPK = orig[:32]
         clientMagic = orig[32:40]
         serial = struct.unpack_from("!I", orig[40:44])[0]
         validFrom = struct.unpack_from("!I", orig[44:48])[0]
@@ -93,8 +93,7 @@ class DNSCryptClient(object):
 
         data = None
         if tcp:
-            got = sock.recv(2)
-            if got:
+            if got := sock.recv(2):
                 (rlen,) = struct.unpack("!H", got)
                 data = sock.recv(rlen)
         else:
@@ -104,19 +103,10 @@ class DNSCryptClient(object):
 
     def _hasValidResolverCertificate(self):
 
-        for cert in self._resolverCertificates:
-            if cert.isValid():
-                return True
-
-        return False
+        return any(cert.isValid() for cert in self._resolverCertificates)
 
     def clearExpiredResolverCertificates(self):
-        newCerts = []
-
-        for cert in self._resolverCertificates:
-            if cert.isValid():
-                newCerts.append(cert)
-
+        newCerts = [cert for cert in self._resolverCertificates if cert.isValid()]
         self._resolverCertificates = newCerts
 
     def refreshResolverCertificates(self):
@@ -155,12 +145,7 @@ class DNSCryptClient(object):
 
     def getAllResolverCertificates(self, onlyValid=False):
         certs = self._resolverCertificates
-        result = []
-        for cert in certs:
-            if not onlyValid or cert.isValid():
-                result.append(cert)
-
-        return result
+        return [cert for cert in certs if not onlyValid or cert.isValid()]
 
     @staticmethod
     def _generateNonce():
@@ -193,7 +178,7 @@ class DNSCryptClient(object):
             raise Exception("Invalid encrypted response: bad resolver magic")
 
         nonce = encryptedResponse[8:32]
-        if nonce[0:int(self.DNSCRYPT_NONCE_SIZE / 2)] != clientNonce:
+        if nonce[: int(self.DNSCRYPT_NONCE_SIZE / 2)] != clientNonce:
             raise Exception("Invalid encrypted response: bad nonce")
 
         cleartext = libnacl.crypto_box_open(encryptedResponse[32:], nonce, resolverCert.publicKey, self._privateKey)
@@ -223,5 +208,4 @@ class DNSCryptClient(object):
             raise Exception("No valid certificate found")
         encryptedQuery = self._encryptQuery(queryContent, resolverCert, nonce, tcp)
         encryptedResponse = self._sendQuery(encryptedQuery, tcp)
-        response = self._decryptResponse(encryptedResponse, resolverCert, nonce)
-        return response
+        return self._decryptResponse(encryptedResponse, resolverCert, nonce)

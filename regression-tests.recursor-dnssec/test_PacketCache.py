@@ -49,7 +49,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
     def checkPacketCacheMetrics(self, expectedHits, expectedMisses):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
         headers = {'x-api-key': self._apiKey}
-        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        url = f'http://127.0.0.1:{str(self._wsPort)}/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -162,9 +162,12 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         self.checkPacketCacheMetrics(6, 7)
 
         # We peek into the cache to check TTLs and allow TTLs to be one lower than inserted since the clock might have ticked
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'dump-cache', '-']
+        rec_controlCmd = [
+            os.environ['RECCONTROL'],
+            f'--config-dir=configs/{self._confdir}',
+            'dump-cache',
+            '-',
+        ]
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertTrue((b"a.example. 10 A  ; tag 0 udp\n" in ret) or (b"a.example. 9 A  ; tag 0 udp\n" in ret))

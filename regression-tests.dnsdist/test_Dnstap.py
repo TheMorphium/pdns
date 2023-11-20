@@ -125,7 +125,7 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the protbuf listener: %s" % str(e))
+            print(f"Error binding in the protbuf listener: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -137,11 +137,11 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
                 if not data:
                     break
                 (datalen,) = struct.unpack("!H", data)
-                data = conn.recv(datalen)
-                if not data:
-                    break
+                if data := conn.recv(datalen):
+                    cls._remoteLoggerQueue.put(data, True, timeout=2.0)
 
-                cls._remoteLoggerQueue.put(data, True, timeout=2.0)
+                else:
+                    break
 
             conn.close()
         sock.close()
@@ -294,7 +294,7 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
 
 
 def fstrm_get_control_frame_type(data):
-    (t,) = struct.unpack("!L", data[0:4])
+    (t,) = struct.unpack("!L", data[:4])
     return t
 
 
@@ -304,12 +304,11 @@ def fstrm_make_control_frame_reply(cft, data):
         contenttype = b'protobuf:dnstap.Dnstap'
         frame = struct.pack('!LLL', FSTRM_CONTROL_ACCEPT, 1,
                             len(contenttype)) + contenttype
-        buf = struct.pack("!LL", 0, len(frame)) + frame
-        return buf
+        return struct.pack("!LL", 0, len(frame)) + frame
     elif cft == FSTRM_CONTROL_START:
         return None
     else:
-        raise Exception('unhandled control frame ' + cft)
+        raise Exception(f'unhandled control frame {cft}')
 
 
 def fstrm_read_and_dispatch_control_frame(conn):
@@ -319,8 +318,7 @@ def fstrm_read_and_dispatch_control_frame(conn):
     (datalen,) = struct.unpack("!L", data)
     data = conn.recv(datalen)
     cft = fstrm_get_control_frame_type(data)
-    reply = fstrm_make_control_frame_reply(cft, data)
-    if reply:
+    if reply := fstrm_make_control_frame_reply(cft, data):
         conn.send(reply)
     return cft
 
@@ -337,13 +335,10 @@ def fstrm_handle_bidir_connection(conn, on_data):
             cft = fstrm_read_and_dispatch_control_frame(conn)
             if cft == FSTRM_CONTROL_STOP:
                 break
-        else:
-            # data frame
-            data = conn.recv(datalen)
-            if not data:
-                break
-
+        elif data := conn.recv(datalen):
             on_data(data)
+        else:
+            break
 
 
 class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
@@ -368,14 +363,14 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
         try:
             sock.bind(path)
         except socket.error as e:
-            print("Error binding in the framestream listener: %s" % str(e))
+            print(f"Error binding in the framestream listener: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
         while True:
             (conn, _) = sock.accept()
             fstrm_handle_bidir_connection(conn, lambda data: \
-                cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
             conn.close()
         sock.close()
 
@@ -450,14 +445,14 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the framestream listener: %s" % str(e))
+            print(f"Error binding in the framestream listener: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
         while True:
             (conn, _) = sock.accept()
             fstrm_handle_bidir_connection(conn, lambda data: \
-                cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0))
             conn.close()
         sock.close()
 

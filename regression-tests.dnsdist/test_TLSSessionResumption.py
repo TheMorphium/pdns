@@ -20,38 +20,36 @@ class DNSDistTLSSessionResumptionTest(DNSDistTest):
 
     @classmethod
     def checkSessionResumed(cls, addr, port, serverName, caFile, ticketFileOut, ticketFileIn, allowNoTicket=False):
-        outFile = tempfile.NamedTemporaryFile()
+      outFile = tempfile.NamedTemporaryFile()
 
-        # we force TLS 1.3 because the session file gets updated when an existing ticket encrypted with an older key gets re-encrypted with the active key
-        # whereas in TLS 1.2 the existing ticket is written instead..
-        testcmd = ['openssl', 's_client', '-tls1_3', '-CAfile', caFile, '-connect', '%s:%d' % (addr, port), '-servername', serverName, '-sess_out', outFile.name]
-        if ticketFileIn and os.path.exists(ticketFileIn):
-            testcmd = testcmd + ['-sess_in', ticketFileIn]
+      # we force TLS 1.3 because the session file gets updated when an existing ticket encrypted with an older key gets re-encrypted with the active key
+      # whereas in TLS 1.2 the existing ticket is written instead..
+      testcmd = ['openssl', 's_client', '-tls1_3', '-CAfile', caFile, '-connect', '%s:%d' % (addr, port), '-servername', serverName, '-sess_out', outFile.name]
+      if ticketFileIn and os.path.exists(ticketFileIn):
+        testcmd += ['-sess_in', ticketFileIn]
 
-        output = None
-        try:
-            process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
-            # we need to wait just a bit so that the Post-Handshake New Session Ticket has the time to arrive..
-            time.sleep(0.5)
-            output = process.communicate(input=b'')
-        except subprocess.CalledProcessError as exc:
-            raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
+      output = None
+      try:
+          process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+          # we need to wait just a bit so that the Post-Handshake New Session Ticket has the time to arrive..
+          time.sleep(0.5)
+          output = process.communicate(input=b'')
+      except subprocess.CalledProcessError as exc:
+          raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
 
-        if process.returncode != 0:
-          raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
+      if process.returncode != 0:
+        raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
 
-        if os.stat(outFile.name).st_size == 0:
-          # if tickets have been disabled, or if the session ticket encryption key is exactly the same, we might not get a new ticket
-          if not allowNoTicket:
-            raise AssertionError('%s failed (%d) to write a session to the output file: %s' % (testcmd, process.returncode, output))
-        else:
-          shutil.copyfile(outFile.name, ticketFileOut)
+      if os.stat(outFile.name).st_size == 0:
+        # if tickets have been disabled, or if the session ticket encryption key is exactly the same, we might not get a new ticket
+        if not allowNoTicket:
+          raise AssertionError('%s failed (%d) to write a session to the output file: %s' % (testcmd, process.returncode, output))
+      else:
+        shutil.copyfile(outFile.name, ticketFileOut)
 
-        for line in output[0].decode().splitlines():
-            if line.startswith('Reused, TLSv1.'):
-                return True
-
-        return False
+      return any(
+          line.startswith('Reused, TLSv1.')
+          for line in output[0].decode().splitlines())
 
     @staticmethod
     def generateTicketKeysFile(numberOfTickets, outputFile):

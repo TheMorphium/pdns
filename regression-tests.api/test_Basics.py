@@ -23,7 +23,7 @@ class TestBasics(ApiTestCase):
 
         print("Sending request")
         for part in parts:
-            print("Sending %s" % part)
+            print(f"Sending {part}")
             s.sendall(part.encode('ascii'))
             time.sleep(0.5)
 
@@ -34,7 +34,7 @@ class TestBasics(ApiTestCase):
 
         status = resp.splitlines(0)[0]
         if b'400' in status:
-            raise Exception('Got unwanted response: %s' % status)
+            raise Exception(f'Got unwanted response: {status}')
 
     def test_cors(self):
         r = self.session.options(self.url("/api/v1/servers/localhost"))

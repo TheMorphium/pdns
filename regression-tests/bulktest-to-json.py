@@ -4,7 +4,7 @@ import glob, json
 
 varnames = set()
 statnames = set()
-runs = list()
+runs = []
 
 for fname in glob.glob('testresults-*.xml'):
 	info = fname[12:-4].split('_')

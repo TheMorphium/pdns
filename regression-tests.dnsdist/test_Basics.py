@@ -411,7 +411,7 @@ class TestBasics(DNSDistTest):
         """
         Basics: test if addAction accepts a table of DNSNames
         """
-        for name in ['dnsname-table{}.addaction.powerdns.com.'.format(i) for i in range(1,2)]:
+        for name in [f'dnsname-table{i}.addaction.powerdns.com.' for i in range(1,2)]:
             query = dns.message.make_query(name, 'A', 'IN')
             query.flags &= ~dns.flags.RD
             expectedResponse = dns.message.make_response(query)

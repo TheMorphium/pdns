@@ -21,25 +21,25 @@ class DynBlocksTest(DNSDistTest):
     _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
 
     def doTestDynBlockViaAPI(self, range, reason, minSeconds, maxSeconds, minBlocks, maxBlocks):
-        headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=dynblocklist'
-        r = requests.get(url, headers=headers, timeout=self._webTimeout)
-        self.assertTrue(r)
-        self.assertEqual(r.status_code, 200)
+      headers = {'x-api-key': self._webServerAPIKey}
+      url = f'http://127.0.0.1:{str(self._webServerPort)}/jsonstat?command=dynblocklist'
+      r = requests.get(url, headers=headers, timeout=self._webTimeout)
+      self.assertTrue(r)
+      self.assertEqual(r.status_code, 200)
 
-        content = r.json()
-        self.assertIsNotNone(content)
-        self.assertIn(range, content)
+      content = r.json()
+      self.assertIsNotNone(content)
+      self.assertIn(range, content)
 
-        values = content[range]
-        for key in ['reason', 'seconds', 'blocks', 'action']:
-            self.assertIn(key, values)
+      values = content[range]
+      for key in ['reason', 'seconds', 'blocks', 'action']:
+          self.assertIn(key, values)
 
-        self.assertEqual(values['reason'], reason)
-        self.assertGreaterEqual(values['seconds'], minSeconds)
-        self.assertLessEqual(values['seconds'], maxSeconds)
-        self.assertGreaterEqual(values['blocks'], minBlocks)
-        self.assertLessEqual(values['blocks'], maxBlocks)
+      self.assertEqual(values['reason'], reason)
+      self.assertGreaterEqual(values['seconds'], minSeconds)
+      self.assertLessEqual(values['seconds'], maxSeconds)
+      self.assertGreaterEqual(values['blocks'], minBlocks)
+      self.assertLessEqual(values['blocks'], maxBlocks)
 
     def doTestQRate(self, name, testViaAPI=True):
         query = dns.message.make_query(name, 'A', 'IN')

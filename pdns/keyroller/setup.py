@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-install_reqs = list()
+install_reqs = []
 
 # Use pipenv for dependencies, setuptools otherwise.
 # This makes the installation for the packages easier (no pipenv needed)

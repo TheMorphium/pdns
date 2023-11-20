@@ -41,11 +41,13 @@ class TestAXFR(DNSDistTest):
         name = 'one.axfr.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AXFR', 'IN')
         response = dns.message.make_response(query)
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response.answer.append(soa)
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
@@ -83,16 +85,16 @@ class TestAXFR(DNSDistTest):
         """
         name = 'four.axfr.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response = dns.message.make_response(query)
         response.answer.append(soa)
-        responses.append(response)
-
+        responses = [response]
         response = dns.message.make_response(query)
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
@@ -134,16 +136,16 @@ class TestAXFR(DNSDistTest):
         """
         name = 'fournosoa.axfr.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response = dns.message.make_response(query)
         response.answer.append(soa)
-        responses.append(response)
-
+        responses = [response]
         response = dns.message.make_response(query)
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
@@ -181,18 +183,18 @@ class TestAXFR(DNSDistTest):
         """
         name = 'threeplustrailing.axfr.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
 
         # the SOA starts the AXFR
         response = dns.message.make_response(query)
         response.answer.append(soa)
-        responses.append(response)
-
+        responses = [response]
         # one A
         response = dns.message.make_response(query)
         response.answer.append(dns.rrset.from_text(name,
@@ -246,23 +248,27 @@ class TestAXFR(DNSDistTest):
         """
         name = 'threeplustrailing.ixfr.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-
-        finalSoa = dns.rrset.from_text(name,
-                                       60,
-                                       dns.rdataclass.IN,
-                                       dns.rdatatype.SOA,
-                                       'ns.' + name + ' hostmaster.' + name + ' 3 3600 3600 3600 60')
+        finalSoa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 3 3600 3600 3600 60',
+        )
 
         # the final SOA starts the IXFR, with first an update from 1 to 2 (one removal, two additions)
         response = dns.message.make_response(query)
         response.answer.append(finalSoa)
         # update from 1 to 2
-        response.answer.append(dns.rrset.from_text(name,
-                                                   60,
-                                                   dns.rdataclass.IN,
-                                                   dns.rdatatype.SOA,
-                                                   'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60'))
+        response.answer.append(
+            dns.rrset.from_text(
+                name,
+                60,
+                dns.rdataclass.IN,
+                dns.rdatatype.SOA,
+                f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+            )
+        )
         # one removal
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
@@ -270,13 +276,16 @@ class TestAXFR(DNSDistTest):
                                                    dns.rdatatype.A,
                                                    '192.0.2.1'))
         # then additions
-        response.answer.append(dns.rrset.from_text(name,
-                                                   60,
-                                                   dns.rdataclass.IN,
-                                                   dns.rdatatype.SOA,
-                                                   'ns.' + name + ' hostmaster.' + name + ' 2 3600 3600 3600 60'))
-        # new message in the middle of the additions
-        responses.append(response)
+        response.answer.append(
+            dns.rrset.from_text(
+                name,
+                60,
+                dns.rdataclass.IN,
+                dns.rdatatype.SOA,
+                f'ns.{name} hostmaster.{name} 2 3600 3600 3600 60',
+            )
+        )
+        responses = [response]
         response = dns.message.make_response(query)
 
         response.answer.append(dns.rrset.from_text_list(name,
@@ -285,11 +294,15 @@ class TestAXFR(DNSDistTest):
                                                         dns.rdatatype.A,
                                                         ['192.0.2.2', '192.0.2.3']))
         # done with 1 -> 2
-        response.answer.append(dns.rrset.from_text(name,
-                                                   60,
-                                                   dns.rdataclass.IN,
-                                                   dns.rdatatype.SOA,
-                                                   'ns.' + name + ' hostmaster.' + name + ' 2 3600 3600 3600 60'))
+        response.answer.append(
+            dns.rrset.from_text(
+                name,
+                60,
+                dns.rdataclass.IN,
+                dns.rdatatype.SOA,
+                f'ns.{name} hostmaster.{name} 2 3600 3600 3600 60',
+            )
+        )
         # new message
         responses.append(response)
         response = dns.message.make_response(query)

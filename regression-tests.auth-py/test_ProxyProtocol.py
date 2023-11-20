@@ -96,10 +96,10 @@ myip.example.org.            3600 IN LUA  TXT     "who:toString()..'/'..bestwho:
                     (datalen,) = struct.unpack("!H", data)
                     data = sock.recv(datalen)
             except socket.timeout as e:
-                print("Timeout: %s" % (str(e)))
+                print(f"Timeout: {str(e)}")
                 data = None
             except socket.error as e:
-                print("Network error: %s" % (str(e)))
+                print(f"Network error: {str(e)}")
                 data = None
             finally:
                 sock.close()
@@ -126,7 +126,7 @@ secondary
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
         try:
-            os.unlink(os.path.join(confdir, '%s.zone' % zonename))
+            os.unlink(os.path.join(confdir, f'{zonename}.zone'))
         except:
             pass
 
@@ -225,10 +225,10 @@ allow-axfr-ips=192.0.2.53
                     (datalen,) = struct.unpack("!H", data)
                     data = sock.recv(datalen)
             except socket.timeout as e:
-                print("Timeout: %s" % (str(e)))
+                print(f"Timeout: {str(e)}")
                 data = None
             except socket.error as e:
-                print("Network error: %s" % (str(e)))
+                print(f"Network error: {str(e)}")
                 data = None
             finally:
                 sock.close()

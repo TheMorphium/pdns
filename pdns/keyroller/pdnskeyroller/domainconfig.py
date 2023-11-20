@@ -26,8 +26,9 @@ def from_api(zone, api):
         raise FileNotFoundError
 
     if len(metadata.metadata) > 1:
-        raise Exception("More than one {} Domain Metadata found for {}!".format(PDNSKEYROLLER_CONFIG_metadata_kind,
-                                                                                zone))
+        raise Exception(
+            f"More than one {PDNSKEYROLLER_CONFIG_metadata_kind} Domain Metadata found for {zone}!"
+        )
     try:
         state = json_tricks.loads(metadata.metadata[0])
     except Exception as e:
@@ -44,9 +45,11 @@ def to_api(zone, api, config):
     :return:
     """
     if not isinstance(api, pdnsapi.api.PDNSApi):
-        raise Exception('api must be a PDNSApi instance, not a {}'.format(type(api)))
+        raise Exception(f'api must be a PDNSApi instance, not a {type(api)}')
     if not isinstance(config, DomainConfig):
-        raise Exception('config must be a DomainConfig instance, not a {}'.format(type(config)))
+        raise Exception(
+            f'config must be a DomainConfig instance, not a {type(config)}'
+        )
 
     api.set_zone_metadata(zone, PDNSKEYROLLER_CONFIG_metadata_kind, str(config))
 
@@ -80,8 +83,7 @@ class DomainConfig:
 
         self.key_style = key_style
         if kwargs:
-            logger.warning('Unknown keys passed: {}'.format(', '.join(
-                [k for k, v in kwargs.items()])))
+            logger.warning('Unknown keys passed: {}'.format(', '.join(list(kwargs))))
 
     @property
     def ksk_frequency(self):
@@ -90,12 +92,13 @@ class DomainConfig:
 
     @ksk_frequency.setter
     def ksk_frequency(self, value):
-        if value != "never" and value != 0:
-            if timeparse(value) is None:
-                raise SyntaxError('Can not parse value "%s" to as timedelta' % value)
-            self.__ksk_frequency = value
-        else:
+        if value in ["never", 0]:
             self.__ksk_frequency = 0
+
+        elif timeparse(value) is None:
+            raise SyntaxError(f'Can not parse value "{value}" to as timedelta')
+        else:
+            self.__ksk_frequency = value
 
     @property
     def ksk_algo(self):
@@ -127,12 +130,13 @@ class DomainConfig:
 
     @zsk_frequency.setter
     def zsk_frequency(self, value):
-        if value != "never" and value != 0:
-            if timeparse(value) is None:
-                raise SyntaxError('Can not parse value "%s" to as timedelta' % value)
-            self.__zsk_frequency = value
-        else:
+        if value in ["never", 0]:
             self.__zsk_frequency = 0
+
+        elif timeparse(value) is None:
+            raise SyntaxError(f'Can not parse value "{value}" to as timedelta')
+        else:
+            self.__zsk_frequency = value
 
     @property
     def zsk_algo(self):
@@ -165,7 +169,7 @@ class DomainConfig:
     @key_style.setter
     def key_style(self, value):
         if value not in ('single', 'split'):
-            raise Exception('Invalid key_style: {}'. format(value))
+            raise Exception(f'Invalid key_style: {value}')
         self.__key_style = value
 
     @property
@@ -180,9 +184,24 @@ class DomainConfig:
 
     def __repr__(self):
         return 'DomainConfig({})'.format(
-            ', '.join(['{} = "{}"'.format(k, self.__getattribute__(k)) for k in
-                       ["version", "ksk_frequency", "ksk_algo", "ksk_keysize", "ksk_method", "zsk_frequency",
-                        "zsk_algo", "zsk_keysize", "zsk_method", "key_style"]]))
+            ', '.join(
+                [
+                    f'{k} = "{self.__getattribute__(k)}"'
+                    for k in [
+                        "version",
+                        "ksk_frequency",
+                        "ksk_algo",
+                        "ksk_keysize",
+                        "ksk_method",
+                        "zsk_frequency",
+                        "zsk_algo",
+                        "zsk_keysize",
+                        "zsk_method",
+                        "key_style",
+                    ]
+                ]
+            )
+        )
     def __str__(self):
         return(json_tricks.dumps({
             'version': self.version,

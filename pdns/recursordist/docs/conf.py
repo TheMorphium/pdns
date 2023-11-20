@@ -23,19 +23,6 @@
 import guzzle_sphinx_theme
 import datetime
 
-# -- General configuration ------------------------------------------------
-
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-#extensions = []
-#extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain']
-extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain',
-              'sphinxcontrib.fulltoc', 'changelog']
 primary_domain = 'lua'
 
 # Add any paths that contain templates here, relative to this directory.
@@ -52,7 +39,7 @@ master_doc = 'indexTOC'
 
 # General information about the project.
 project = 'PowerDNS Recursor'
-copyright = '2001-' + str(datetime.date.today().year) + ', PowerDNS.COM BV'
+copyright = f'2001-{str(datetime.date.today().year)}, PowerDNS.COM BV'
 author = 'PowerDNS.COM BV'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -107,8 +94,14 @@ changelog_hide_tags_in_entry = True
 html_theme_path = guzzle_sphinx_theme.html_theme_path()
 html_theme = 'guzzle_sphinx_theme'
 
-extensions.append("guzzle_sphinx_theme")
-
+extensions = [
+    'redjack.sphinx.lua',
+    'sphinxcontrib.httpdomain',
+    'sphinxjsondomain',
+    'sphinxcontrib.fulltoc',
+    'changelog',
+    "guzzle_sphinx_theme",
+]
 html_theme_options = {
     # Set the name of the project to appear in the sidebar
     "project_nav_name": "PowerDNS Recursor",

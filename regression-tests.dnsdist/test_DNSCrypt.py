@@ -281,7 +281,6 @@ class TestDNSCryptWithCache(DNSCryptTest):
         """
         DNSCrypt: encrypted A query served from cache
         """
-        misses = 0
         client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
         name = 'cacheda.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -306,8 +305,7 @@ class TestDNSCryptWithCache(DNSCryptTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # second query should get a cached response
         data = client.query(query.to_wire())
         receivedResponse = dns.message.from_wire(data)
@@ -318,9 +316,7 @@ class TestDNSCryptWithCache(DNSCryptTest):
         self.assertEqual(receivedQuery, None)
         self.assertTrue(receivedResponse)
         self.assertEqual(response, receivedResponse)
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestDNSCryptAutomaticRotation(DNSCryptTest):

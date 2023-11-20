@@ -25,7 +25,7 @@ class DNSDistProtobufTest(DNSDistTest):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the protbuf listener: %s" % str(e))
+            print(f"Error binding in the protbuf listener: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -34,23 +34,25 @@ class DNSDistProtobufTest(DNSDistTest):
             try:
                 (conn, _) = sock.accept()
             except socket.timeout:
-                if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
-                    del cls._backgroundThreads[threading.get_native_id()]
-                    break
-                else:
+                if (
+                    cls._backgroundThreads.get(threading.get_native_id(), False)
+                    != False
+                ):
                     continue
 
+                del cls._backgroundThreads[threading.get_native_id()]
+                break
             data = None
             while True:
                 data = conn.recv(2)
                 if not data:
                     break
                 (datalen,) = struct.unpack("!H", data)
-                data = conn.recv(datalen)
-                if not data:
-                    break
+                if data := conn.recv(datalen):
+                    cls._protobufQueue.put(data, True, timeout=2.0)
 
-                cls._protobufQueue.put(data, True, timeout=2.0)
+                else:
+                    break
 
             conn.close()
         sock.close()
@@ -100,9 +102,12 @@ class DNSDistProtobufTest(DNSDistTest):
         self.assertTrue(msg.HasField('serverIdentity'))
         self.assertEqual(msg.serverIdentity, self._protobufServerID.encode('utf-8'))
 
-        if normalQueryResponse and (protocol == dnsmessage_pb2.PBDNSMessage.UDP or protocol == dnsmessage_pb2.PBDNSMessage.TCP):
-          # compare inBytes with length of query/response
-          self.assertEqual(msg.inBytes, len(query.to_wire()))
+        if normalQueryResponse and protocol in [
+            dnsmessage_pb2.PBDNSMessage.UDP,
+            dnsmessage_pb2.PBDNSMessage.TCP,
+        ]:
+            # compare inBytes with length of query/response
+            self.assertEqual(msg.inBytes, len(query.to_wire()))
         # dnsdist doesn't set the existing EDNS Subnet for now,
         # although it might be set from Lua
         # self.assertTrue(msg.HasField('originalRequestorSubnet'))
@@ -458,10 +463,7 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertIn('my-empty-key', msg.response.tags)
         # meta tags
         self.assertEqual(len(msg.meta), 2)
-        tags = {}
-        for entry in msg.meta:
-            tags[entry.key] = entry.value.stringVal
-
+        tags = {entry.key: entry.value.stringVal for entry in msg.meta}
         self.assertIn('b64', tags)
         self.assertIn('my-tag-export-name', tags)
 
@@ -537,15 +539,15 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             # check the protobuf message corresponding to the query
             msg = self.getFirstProtobufMessage()
 
-            if method == "sendUDPQuery":
-                pbMessageType = dnsmessage_pb2.PBDNSMessage.UDP
-            elif method == "sendTCPQuery":
-                pbMessageType = dnsmessage_pb2.PBDNSMessage.TCP
-            elif method == "sendDOTQueryWrapper":
-                pbMessageType = dnsmessage_pb2.PBDNSMessage.DOT
-            elif method == "sendDOHQueryWrapper":
+            if method == "sendDOHQueryWrapper":
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.DOH
 
+            elif method == "sendDOTQueryWrapper":
+                pbMessageType = dnsmessage_pb2.PBDNSMessage.DOT
+            elif method == "sendTCPQuery":
+                pbMessageType = dnsmessage_pb2.PBDNSMessage.TCP
+            elif method == "sendUDPQuery":
+                pbMessageType = dnsmessage_pb2.PBDNSMessage.UDP
             print(method)
             self.checkProtobufQuery(msg, pbMessageType, query, dns.rdataclass.IN, dns.rdatatype.A, name)
             self.assertEqual(len(msg.meta), 5)
@@ -558,7 +560,9 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             if method == "sendDOHQueryWrapper":
                 self.assertIn('PycURL', tags['agent'])
                 self.assertIn('host', tags)
-                self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohServerPort))
+                self.assertEqual(
+                    tags['host'], f'{self._serverName}:{str(self._dohServerPort)}'
+                )
                 self.assertIn('path', tags)
                 self.assertEqual(tags['path'], '/dns-query')
                 self.assertIn('query-string', tags)
@@ -579,7 +583,9 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             if method == "sendDOHQueryWrapper":
                 self.assertIn('PycURL', tags['agent'])
                 self.assertIn('host', tags)
-                self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohServerPort))
+                self.assertEqual(
+                    tags['host'], f'{self._serverName}:{str(self._dohServerPort)}'
+                )
                 self.assertIn('path', tags)
                 self.assertEqual(tags['path'], '/dns-query')
                 self.assertIn('query-string', tags)
@@ -637,10 +643,7 @@ class TestProtobufMetaProxy(DNSDistProtobufTest):
 
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name, initiator='2001:db8::8', v6=True)
         self.assertEqual(len(msg.meta), 2)
-        tags = {}
-        for entry in msg.meta:
-            tags[entry.key] = entry.value.stringVal
-
+        tags = {entry.key: entry.value.stringVal for entry in msg.meta}
         self.assertIn('pp42', tags)
         self.assertEqual(tags['pp42'], ['proxy'])
         self.assertIn('pp', tags)

@@ -88,7 +88,7 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
-        with open(os.path.join(confdir, '%s.zone' % zonename), 'w') as zonefile:
+        with open(os.path.join(confdir, f'{zonename}.zone'), 'w') as zonefile:
             zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
 
     @classmethod
@@ -111,7 +111,7 @@ options {
     def generateAuthConfig(cls, confdir):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
-        params = tuple([getattr(cls, param) for param in cls._config_params])
+        params = tuple(getattr(cls, param) for param in cls._config_params)
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write(cls._config_template_default.format(
@@ -121,10 +121,12 @@ options {
 
         os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
 
-        pdnsutilCmd = [os.environ['PDNSUTIL'],
-                       '--config-dir=%s' % confdir,
-                       'create-bind-db',
-                       bind_dnssec_db]
+        pdnsutilCmd = [
+            os.environ['PDNSUTIL'],
+            f'--config-dir={confdir}',
+            'create-bind-db',
+            bind_dnssec_db,
+        ]
 
         print(' '.join(pdnsutilCmd))
         try:
@@ -136,22 +138,26 @@ options {
     def secureZone(cls, confdir, zonename, key=None):
         zone = '.' if zonename == 'ROOT' else zonename
         if not key:
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'secure-zone',
-                           zone]
+            pdnsutilCmd = [
+                os.environ['PDNSUTIL'],
+                f'--config-dir={confdir}',
+                'secure-zone',
+                zone,
+            ]
         else:
             keyfile = os.path.join(confdir, 'dnssec.key')
             with open(keyfile, 'w') as fdKeyfile:
                 fdKeyfile.write(key)
 
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'import-zone-key',
-                           zone,
-                           keyfile,
-                           'active',
-                           'ksk']
+            pdnsutilCmd = [
+                os.environ['PDNSUTIL'],
+                f'--config-dir={confdir}',
+                'import-zone-key',
+                zone,
+                keyfile,
+                'active',
+                'ksk',
+            ]
 
         print(' '.join(pdnsutilCmd))
         try:
@@ -190,11 +196,15 @@ options {
 
         print("Launching pdns_server..")
         authcmd = list(cls._auth_cmd)
-        authcmd.append('--config-dir=%s' % confdir)
-        authcmd.append('--local-address=%s' % ipaddress)
-        authcmd.append('--local-port=%s' % cls._authPort)
-        authcmd.append('--loglevel=9')
-        authcmd.append('--zone-cache-refresh-interval=0')
+        authcmd.extend(
+            (
+                f'--config-dir={confdir}',
+                f'--local-address={ipaddress}',
+                f'--local-port={cls._authPort}',
+                '--loglevel=9',
+                '--zone-cache-refresh-interval=0',
+            )
+        )
         print(' '.join(authcmd))
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
@@ -212,10 +222,10 @@ options {
 
     @classmethod
     def setUpSockets(cls):
-         print("Setting up UDP socket..")
-         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-         cls._sock.settimeout(2.0)
-         cls._sock.connect((cls._PREFIX + ".1", cls._authPort))
+        print("Setting up UDP socket..")
+        cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls._sock.settimeout(2.0)
+        cls._sock.connect((f"{cls._PREFIX}.1", cls._authPort))
 
     @classmethod
     def startResponders(cls):
@@ -231,7 +241,7 @@ options {
         cls.createConfigDir(confdir)
 
         cls.generateAllAuthConfig(confdir)
-        cls.startAuth(confdir, cls._PREFIX + ".1")
+        cls.startAuth(confdir, f"{cls._PREFIX}.1")
 
         print("Launching tests..")
 
@@ -255,7 +265,7 @@ options {
             return
         try:
             p.terminate()
-            for count in range(10):
+            for _ in range(10):
                 x = p.poll()
                 if x is not None:
                     break
@@ -314,17 +324,15 @@ options {
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
+        message = dns.message.from_wire(data) if data else None
         return message
 
     @classmethod
@@ -340,12 +348,12 @@ options {
             sock.send(struct.pack("!H", len(wire)))
             sock.send(wire)
         except socket.timeout as e:
-            raise Exception("Timeout: %s" % (str(e)))
+            raise Exception(f"Timeout: {str(e)}")
         except socket.error as e:
-            raise Exception("Network error: %s" % (str(e)))
+            raise Exception(f"Network error: {str(e)}")
 
         messages = []
-        for i in range(count):
+        for _ in range(count):
             try:
                 data = sock.recv(2)
                 print("got data", repr(data))
@@ -356,9 +364,9 @@ options {
                 else:
                     break
             except socket.timeout as e:
-                raise Exception("Timeout: %s" % (str(e)))
+                raise Exception(f"Timeout: {str(e)}")
             except socket.error as e:
-                raise Exception("Network error: %s" % (str(e)))
+                raise Exception(f"Network error: {str(e)}")
 
         return messages
 
@@ -377,20 +385,18 @@ options {
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        if isinstance(flags, list):
-            for elem in flags:
-                if not isinstance(elem, str):
-                    raise TypeError("flags is not a list of strings")
-        else:
+        if not isinstance(flags, list):
             raise TypeError("flags is not a list of strings")
 
-        if isinstance(ednsflags, list):
-            for elem in ednsflags:
-                if not isinstance(elem, str):
-                    raise TypeError("ednsflags is not a list of strings")
-        else:
+        for elem in flags:
+            if not isinstance(elem, str):
+                raise TypeError("flags is not a list of strings")
+        if not isinstance(ednsflags, list):
             raise TypeError("ednsflags is not a list of strings")
 
+        for elem in ednsflags:
+            if not isinstance(elem, str):
+                raise TypeError("ednsflags is not a list of strings")
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
 
@@ -398,10 +404,9 @@ options {
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
-            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s" %
-                                 (' '.join(flags), ' '.join(ednsflags),
-                                  ' '.join(msgFlags), ' '.join(msgEdnsFlags),
-                                  msg.question[0]))
+            raise AssertionError(
+                f"Expected flags '{' '.join(flags)}' (EDNS: '{' '.join(ednsflags)}'), found '{' '.join(msgFlags)}' (EDNS: '{' '.join(msgEdnsFlags)}') in query {msg.question[0]}"
+            )
 
     def assertMessageIsAuthenticated(self, msg):
         """Asserts that the message has the AD bit set
@@ -412,7 +417,10 @@ options {
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        self.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertTrue(
+            'AD' in msgFlags,
+            f"No AD flag found in the message for {msg.question[0].name}",
+        )
 
     def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the
@@ -432,7 +440,7 @@ options {
         for ans in msg.answer:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
+                self.assertEqual(ans, rrset, f"'{ans.to_text()}' != '{rrset.to_text()}'")
                 found = True
 
         if not found :
@@ -456,7 +464,7 @@ options {
         for ans in msg.additional:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
+                self.assertEqual(ans, rrset, f"'{ans.to_text()}' != '{rrset.to_text()}'")
                 found = True
 
         if not found :
@@ -522,7 +530,9 @@ options {
                 break
 
         if not msgRRSet:
-            raise AssertionError("RRset for '%s' not found in answer" % msg.question[0].to_text())
+            raise AssertionError(
+                f"RRset for '{msg.question[0].to_text()}' not found in answer"
+            )
 
         if not msgRRsigRRSet:
             raise AssertionError("No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
@@ -539,11 +549,11 @@ options {
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        ret = ""
-        for ans in msg.answer:
-            if ans.rdtype == dns.rdatatype.RRSIG:
-                ret += ans.name.to_text() + "\n"
-
+        ret = "".join(
+            ans.name.to_text() + "\n"
+            for ans in msg.answer
+            if ans.rdtype == dns.rdatatype.RRSIG
+        )
         if len(ret):
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
@@ -555,7 +565,7 @@ options {
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):
-            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+            raise TypeError(f"msg is not a dns.message.Message but a {type(msg)}")
 
         if not isinstance(rcode, int):
             if isinstance(rcode, str):
@@ -571,17 +581,14 @@ options {
                 msgRcode = msg.rcode()
                 wantedRcode = rcode
 
-            raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
+            raise AssertionError(
+                f"Rcode for {msg.question[0].to_text()} is {msgRcode}, expected {wantedRcode}."
+            )
 
     def assertAuthorityHasSOA(self, msg):
         if not isinstance(msg, dns.message.Message):
-            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+            raise TypeError(f"msg is not a dns.message.Message but a {type(msg)}")
 
-        found = False
-        for rrset in msg.authority:
-            if rrset.rdtype == dns.rdatatype.SOA:
-                found = True
-                break
-
+        found = any(rrset.rdtype == dns.rdatatype.SOA for rrset in msg.authority)
         if not found:
             raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())

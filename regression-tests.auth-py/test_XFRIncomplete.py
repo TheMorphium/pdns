@@ -24,7 +24,7 @@ class BadXFRServer(object):
         return self._currentSerial
 
     def moveToSerial(self, newSerial):
-        if newSerial == self._currentSerial or newSerial == self._targetSerial:
+        if newSerial in [self._currentSerial, self._targetSerial]:
             return False
 
         #if newSerial != self._currentSerial + 1:
@@ -51,10 +51,10 @@ class BadXFRServer(object):
                 ]
 
         elif message.question[0].rdtype == dns.rdatatype.IXFR:
-            oldSerial = message.authority[0][0].serial
-
             newSerial = self._targetSerial
             if newSerial == 2:
+                oldSerial = message.authority[0][0].serial
+
                 records = [
                     dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % newSerial),
                     dns.rrset.from_text('zone.rpz.', 60, dns.rdataclass.IN, dns.rdatatype.SOA, 'ns.zone.rpz. hostmaster.zone.rpz. %d 3600 3600 3600 1' % oldSerial),
@@ -88,7 +88,10 @@ class BadXFRServer(object):
             if len(message.question) != 1:
                 print('Invalid query, qdcount is %d' % (len(message.question)), file=sys.stderr)
                 break
-            if not message.question[0].rdtype in [dns.rdatatype.AXFR, dns.rdatatype.IXFR]:
+            if message.question[0].rdtype not in [
+                dns.rdatatype.AXFR,
+                dns.rdatatype.IXFR,
+            ]:
                 print('Invalid query, qtype is %d' % (message.question.rdtype), file=sys.stderr)
                 break
             print(message, file=sys.stderr)
@@ -113,7 +116,7 @@ class BadXFRServer(object):
         try:
             sock.bind(("127.0.0.1", self._serverPort))
         except socket.error as e:
-            print("Error binding in the IXFR listener: %s" % str(e))
+            print(f"Error binding in the IXFR listener: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -128,7 +131,7 @@ class BadXFRServer(object):
                 thread.start()
 
             except socket.error as e:
-                print('Error in IXFR socket: %s' % str(e))
+                print(f'Error in IXFR socket: {str(e)}')
                 sock.close()
 
 badxfrServerPort = 4251
@@ -157,7 +160,9 @@ slave-cycle-interval=1
     @classmethod
     def setUpClass(cls):
         super(XFRIncompleteAuthTest, cls).setUpClass()
-        os.system("$PDNSUTIL --config-dir=configs/auth create-slave-zone zone.rpz. 127.0.0.1:%s" % (badxfrServerPort,))
+        os.system(
+            f"$PDNSUTIL --config-dir=configs/auth create-slave-zone zone.rpz. 127.0.0.1:{badxfrServerPort}"
+        )
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta zone.rpz. IXFR 1")
     
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=20):
@@ -174,7 +179,7 @@ slave-cycle-interval=1
                 badxfrServer.moveToSerial(serial+1)
                 return
 
-            attempts = attempts + 1
+            attempts += 1
             time.sleep(1)
 
         raise AssertionError("Waited %d seconds for the serial to be updated to %d but the serial is still %d" % (timeout, serial, currentSerial))

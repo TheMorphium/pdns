@@ -120,7 +120,7 @@ def ensure_empty_dir(name):
 
 
 def format_call_args(cmd):
-    return "$ '%s'" % ("' '".join(cmd))
+  return f"""$ '{"' '".join(cmd)}'"""
 
 
 def run_check_call(cmd, *args, **kwargs):
@@ -150,11 +150,16 @@ daemon = sys.argv[1]
 pdns_server = os.environ.get("PDNSSERVER", "../pdns/pdns_server")
 pdns_recursor = os.environ.get("PDNSRECURSOR", "../pdns/recursordist/pdns_recursor")
 common_args = [
-    "--daemon=no", "--socket-dir=.", "--config-dir=.",
-    "--local-address=127.0.0.1", "--local-port="+str(DNSPORT),
-    "--webserver=yes", "--webserver-port="+str(WEBPORT), "--webserver-address=127.0.0.1",
-    "--webserver-password="+WEBPASSWORD,
-    "--api-key="+APIKEY
+    "--daemon=no",
+    "--socket-dir=.",
+    "--config-dir=.",
+    "--local-address=127.0.0.1",
+    f"--local-port={str(DNSPORT)}",
+    "--webserver=yes",
+    f"--webserver-port={str(WEBPORT)}",
+    "--webserver-address=127.0.0.1",
+    f"--webserver-password={WEBPASSWORD}",
+    f"--api-key={APIKEY}",
 ]
 
 # Take sdig if it exists (recursor in travis), otherwise build it from Authoritative source.
@@ -167,71 +172,92 @@ if not sdig or not os.path.exists(sdig):
 
 
 if daemon == 'authoritative':
-    zone2sql = os.environ.get("ZONE2SQL", "../pdns/zone2sql")
+  zone2sql = os.environ.get("ZONE2SQL", "../pdns/zone2sql")
 
     # Prepare mysql DB with some zones.
-    if backend == 'gmysql':
-        subprocess.call(["mysqladmin", "--user=" + MYSQL_USER, "--password=" + MYSQL_PASSWD, "--host=" + MYSQL_HOST, "--force", "drop", MYSQL_DB])
+  if backend == 'gmysql':
+    subprocess.call([
+        "mysqladmin",
+        f"--user={MYSQL_USER}",
+        f"--password={MYSQL_PASSWD}",
+        f"--host={MYSQL_HOST}",
+        "--force",
+        "drop",
+        MYSQL_DB,
+    ])
 
-        run_check_call(["mysqladmin", "--user=" + MYSQL_USER, "--password=" + MYSQL_PASSWD, "--host=" + MYSQL_HOST, "create", MYSQL_DB])
+    run_check_call([
+        "mysqladmin",
+        f"--user={MYSQL_USER}",
+        f"--password={MYSQL_PASSWD}",
+        f"--host={MYSQL_HOST}",
+        "create",
+        MYSQL_DB,
+    ])
 
-        with open('../modules/gmysqlbackend/schema.mysql.sql', 'r') as schema_file:
-            run_check_call(["mysql", "--user=" + MYSQL_USER, "--password=" + MYSQL_PASSWD, "--host=" + MYSQL_HOST, MYSQL_DB], stdin=schema_file)
+    with open('../modules/gmysqlbackend/schema.mysql.sql', 'r') as schema_file:
+      run_check_call(
+          [
+              "mysql",
+              f"--user={MYSQL_USER}",
+              f"--password={MYSQL_PASSWD}",
+              f"--host={MYSQL_HOST}",
+              MYSQL_DB,
+          ],
+          stdin=schema_file,
+      )
 
-        with open('pdns.conf', 'w') as pdns_conf:
-            pdns_conf.write(AUTH_MYSQL_TPL + AUTH_COMMON_TPL)
+    with open('pdns.conf', 'w') as pdns_conf:
+        pdns_conf.write(AUTH_MYSQL_TPL + AUTH_COMMON_TPL)
 
-    # Prepare pgsql DB with some zones.
-    elif backend == 'gpgsql':
-        subprocess.call(["dropdb", PGSQL_DB])
+  elif backend == 'gpgsql':
+      subprocess.call(["dropdb", PGSQL_DB])
 
-        subprocess.check_call(["createdb", PGSQL_DB])
+      subprocess.check_call(["createdb", PGSQL_DB])
 
-        with open('../modules/gpgsqlbackend/schema.pgsql.sql', 'r') as schema_file:
-            subprocess.check_call(["psql", PGSQL_DB], stdin=schema_file)
+      with open('../modules/gpgsqlbackend/schema.pgsql.sql', 'r') as schema_file:
+          subprocess.check_call(["psql", PGSQL_DB], stdin=schema_file)
 
-        with open('pdns.conf', 'w') as pdns_conf:
-            pdns_conf.write(AUTH_PGSQL_TPL + AUTH_COMMON_TPL)
+      with open('pdns.conf', 'w') as pdns_conf:
+          pdns_conf.write(AUTH_PGSQL_TPL + AUTH_COMMON_TPL)
 
-    # Prepare sqlite DB with some zones.
-    elif backend == 'gsqlite3':
-        subprocess.call("rm -f " + SQLITE_DB + "*", shell=True)
+  elif backend == 'gsqlite3':
+    subprocess.call(f"rm -f {SQLITE_DB}*", shell=True)
 
-        with open('../modules/gsqlite3backend/schema.sqlite3.sql', 'r') as schema_file:
-            run_check_call(["sqlite3", SQLITE_DB], stdin=schema_file)
+    with open('../modules/gsqlite3backend/schema.sqlite3.sql', 'r') as schema_file:
+        run_check_call(["sqlite3", SQLITE_DB], stdin=schema_file)
 
-        with open('pdns.conf', 'w') as pdns_conf:
-            pdns_conf.write(AUTH_SQLITE_TPL + AUTH_COMMON_TPL)
+    with open('pdns.conf', 'w') as pdns_conf:
+        pdns_conf.write(AUTH_SQLITE_TPL + AUTH_COMMON_TPL)
 
-    # Prepare lmdb DB with some zones.
-    elif backend == 'lmdb':
-        subprocess.call("rm -f " + LMDB_DB + "*", shell=True)
+  elif backend == 'lmdb':
+    subprocess.call(f"rm -f {LMDB_DB}*", shell=True)
 
-        with open('pdns.conf', 'w') as pdns_conf:
-            pdns_conf.write(AUTH_LMDB_TPL + AUTH_COMMON_TPL)
+    with open('pdns.conf', 'w') as pdns_conf:
+        pdns_conf.write(AUTH_LMDB_TPL + AUTH_COMMON_TPL)
 
-    with open('bindbackend.conf', 'w') as bindbackend_conf:
-        bindbackend_conf.write(BINDBACKEND_CONF_TPL)
+  with open('bindbackend.conf', 'w') as bindbackend_conf:
+      bindbackend_conf.write(BINDBACKEND_CONF_TPL)
 
-    for zone in ZONES:
-        run_check_call(PDNSUTIL_CMD + ["load-zone", zone, ZONE_DIR+zone])
+  for zone in ZONES:
+      run_check_call(PDNSUTIL_CMD + ["load-zone", zone, ZONE_DIR+zone])
 
-    run_check_call(PDNSUTIL_CMD + ["secure-zone", "powerdnssec.org"])
-    servercmd = [pdns_server] + common_args + ["--no-shuffle", "--dnsupdate=yes", "--cache-ttl=0", "--api=yes"]
+  run_check_call(PDNSUTIL_CMD + ["secure-zone", "powerdnssec.org"])
+  servercmd = [pdns_server] + common_args + ["--no-shuffle", "--dnsupdate=yes", "--cache-ttl=0", "--api=yes"]
 
 else:
-    conf_dir = 'rec-conf.d'
-    ensure_empty_dir(conf_dir)
-    with open('acl.list', 'w') as acl_list:
-        acl_list.write(ACL_LIST_TPL)
-    with open('acl-notify.list', 'w') as acl_notify_list:
-        acl_notify_list.write(ACL_NOTIFY_LIST_TPL)
-    with open('recursor.conf', 'w') as recursor_conf:
-        recursor_conf.write(REC_CONF_TPL % locals())
-    with open(conf_dir+'/example.com..conf', 'w') as conf_file:
-        conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
+  conf_dir = 'rec-conf.d'
+  ensure_empty_dir(conf_dir)
+  with open('acl.list', 'w') as acl_list:
+      acl_list.write(ACL_LIST_TPL)
+  with open('acl-notify.list', 'w') as acl_notify_list:
+      acl_notify_list.write(ACL_NOTIFY_LIST_TPL)
+  with open('recursor.conf', 'w') as recursor_conf:
+      recursor_conf.write(REC_CONF_TPL % locals())
+  with open(f'{conf_dir}/example.com..conf', 'w') as conf_file:
+    conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
 
-    servercmd = [pdns_recursor] + common_args
+  servercmd = [pdns_recursor] + common_args
 
 
 # Now run pdns and the tests.
@@ -261,16 +287,16 @@ def finalize_server():
 print("Waiting for webserver port to become available...")
 available = False
 time.sleep(1)
-for try_number in range(0, 10):
-    try:
-        res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
-        available = True
-        break
-    except HTTPError as http_err:
-      print(f'HTTP error occurred: {http_err}')
-    except Exception as err:
-      print(f'Other error occurred: {err}')
-    time.sleep(1)
+for _ in range(0, 10):
+  try:
+    res = requests.get(f'http://127.0.0.1:{WEBPORT}/')
+    available = True
+    break
+  except HTTPError as http_err:
+    print(f'HTTP error occurred: {http_err}')
+  except Exception as err:
+    print(f'Other error occurred: {err}')
+  time.sleep(1)
 
 if not available:
     print("Webserver port not reachable after 10 tries, giving up.")

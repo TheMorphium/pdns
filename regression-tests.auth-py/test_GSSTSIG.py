@@ -61,11 +61,15 @@ dnsupdate=yes
         self.assertEqual(ret.returncode, expected)
 
     def checkInDB(self, zone, record):
-        ret = os.system("$PDNSUTIL --config-dir=configs/auth list-zone %s | egrep -q %s" % (zone, record))
+        ret = os.system(
+            f"$PDNSUTIL --config-dir=configs/auth list-zone {zone} | egrep -q {record}"
+        )
         self.assertEqual(ret, 0)
 
     def checkNotInDB(self, zone, record):
-        ret = os.system("$PDNSUTIL --config-dir=configs/auth list-zone %s | fgrep -q %s" % (zone, record))
+        ret = os.system(
+            f"$PDNSUTIL --config-dir=configs/auth list-zone {zone} | fgrep -q {record}"
+        )
         self.assertNotEqual(ret, 0)
 
 class TestBasicGSSTSIG(GSSTSIGBase):

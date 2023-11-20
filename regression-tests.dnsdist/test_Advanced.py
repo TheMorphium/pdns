@@ -247,11 +247,13 @@ class TestAdvancedGetLocalPort(DNSDistTest):
         query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.CNAME,
-                                    'port-was-{}.local-port.advanced.tests.powerdns.com.'.format(self._dnsDistPort))
+        rrset = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.CNAME,
+            f'port-was-{self._dnsDistPort}.local-port.advanced.tests.powerdns.com.',
+        )
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -281,11 +283,13 @@ class TestAdvancedGetLocalPortOnAnyBind(DNSDistTest):
         query.flags &= ~dns.flags.RD
 
         response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.CNAME,
-                                    'port-was-{}.local-port-any.advanced.tests.powerdns.com.'.format(self._dnsDistPort))
+        rrset = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.CNAME,
+            f'port-was-{self._dnsDistPort}.local-port-any.advanced.tests.powerdns.com.',
+        )
         response.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

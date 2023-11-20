@@ -437,7 +437,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
-        with open(os.path.join(confdir, '%s.zone' % zonename), 'w') as zonefile:
+        with open(os.path.join(confdir, f'{zonename}.zone'), 'w') as zonefile:
             zonefile.write(zonecontent.format(prefix=cls._PREFIX, soa=cls._SOA))
 
     @classmethod
@@ -480,10 +480,12 @@ distributor-threads={threads}""".format(confdir=confdir,
                                         bind_dnssec_db=bind_dnssec_db,
                                         threads=threads))
 
-        pdnsutilCmd = [os.environ['PDNSUTIL'],
-                       '--config-dir=%s' % confdir,
-                       'create-bind-db',
-                       bind_dnssec_db]
+        pdnsutilCmd = [
+            os.environ['PDNSUTIL'],
+            f'--config-dir={confdir}',
+            'create-bind-db',
+            bind_dnssec_db,
+        ]
 
         print(' '.join(pdnsutilCmd))
         try:
@@ -495,22 +497,26 @@ distributor-threads={threads}""".format(confdir=confdir,
     def secureZone(cls, confdir, zonename, key=None):
         zone = '.' if zonename == 'ROOT' else zonename
         if not key:
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'secure-zone',
-                           zone]
+            pdnsutilCmd = [
+                os.environ['PDNSUTIL'],
+                f'--config-dir={confdir}',
+                'secure-zone',
+                zone,
+            ]
         else:
             keyfile = os.path.join(confdir, 'dnssec.key')
             with open(keyfile, 'w') as fdKeyfile:
                 fdKeyfile.write(key)
 
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'import-zone-key',
-                           zone,
-                           keyfile,
-                           'active',
-                           'ksk']
+            pdnsutilCmd = [
+                os.environ['PDNSUTIL'],
+                f'--config-dir={confdir}',
+                'import-zone-key',
+                zone,
+                keyfile,
+                'active',
+                'ksk',
+            ]
 
         print(' '.join(pdnsutilCmd))
         try:
@@ -520,30 +526,31 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def generateAllAuthConfig(cls, confdir):
-        if cls._auth_zones:
-            for auth_suffix, zoneinfo in cls._auth_zones.items():
-                threads = zoneinfo['threads']
-                zones = zoneinfo['zones']
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
+        if not cls._auth_zones:
+            return
+        for auth_suffix, zoneinfo in cls._auth_zones.items():
+            threads = zoneinfo['threads']
+            zones = zoneinfo['zones']
+            authconfdir = os.path.join(confdir, f'auth-{auth_suffix}')
 
-                os.mkdir(authconfdir)
+            os.mkdir(authconfdir)
 
-                cls.generateAuthConfig(authconfdir, threads)
-                cls.generateAuthNamedConf(authconfdir, zones)
+            cls.generateAuthConfig(authconfdir, threads)
+            cls.generateAuthNamedConf(authconfdir, zones)
 
-                for zone in zones:
-                    cls.generateAuthZone(authconfdir,
-                                         zone,
-                                         cls._zones[zone])
-                    if cls._zone_keys.get(zone, None):
-                        cls.secureZone(authconfdir, zone, cls._zone_keys.get(zone))
+            for zone in zones:
+                cls.generateAuthZone(authconfdir,
+                                     zone,
+                                     cls._zones[zone])
+                if cls._zone_keys.get(zone, None):
+                    cls.secureZone(authconfdir, zone, cls._zone_keys.get(zone))
 
     @classmethod
     def startAllAuth(cls, confdir):
         if cls._auth_zones:
             for auth_suffix, _ in cls._auth_zones.items():
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
-                ipaddress = cls._PREFIX + '.' + auth_suffix
+                authconfdir = os.path.join(confdir, f'auth-{auth_suffix}')
+                ipaddress = f'{cls._PREFIX}.{auth_suffix}'
                 cls.startAuth(authconfdir, ipaddress)
 
     @classmethod
@@ -564,12 +571,12 @@ distributor-threads={threads}""".format(confdir=confdir,
     def startAuth(cls, confdir, ipaddress):
         print("Launching pdns_server..")
         authcmd = list(cls._auth_cmd)
-        authcmd.append('--config-dir=%s' % confdir)
+        authcmd.append(f'--config-dir={confdir}')
         ipconfig = ipaddress
         # auth-8 is the auth serving the root, it gets an ipv6 address
         if (confdir[-6:] == "auth-8") and have_ipv6():
             ipconfig += ',::1'
-        authcmd.append('--local-address=%s' % ipconfig)
+        authcmd.append(f'--local-address={ipconfig}')
         print(' '.join(authcmd))
 
         logFile = os.path.join(confdir, 'pdns.log')
@@ -589,7 +596,7 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        params = tuple([getattr(cls, param) for param in cls._config_params])
+        params = tuple(getattr(cls, param) for param in cls._config_params)
         if len(params):
             print(params)
 
@@ -627,10 +634,12 @@ distributor-threads={threads}""".format(confdir=confdir,
     @classmethod
     def startRecursor(cls, confdir, port):
         print("Launching pdns_recursor..")
-        recursorcmd = [os.environ['PDNSRECURSOR'],
-                       '--config-dir=%s' % confdir,
-                       '--local-port=%s' % port,
-                       '--security-poll-suffix=']
+        recursorcmd = [
+            os.environ['PDNSRECURSOR'],
+            f'--config-dir={confdir}',
+            f'--local-port={port}',
+            '--security-poll-suffix=',
+        ]
         print(' '.join(recursorcmd))
 
         logFile = os.path.join(confdir, 'recursor.log')
@@ -649,10 +658,12 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def wipeRecursorCache(cls, confdir, name='.$'):
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % confdir,
-                          'wipe-cache',
-                          name]
+        rec_controlCmd = [
+            os.environ['RECCONTROL'],
+            f'--config-dir={confdir}',
+            'wipe-cache',
+            name,
+        ]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
@@ -698,7 +709,7 @@ distributor-threads={threads}""".format(confdir=confdir,
             return
         try:
             p.terminate()
-            for count in range(10):
+            for _ in range(10):
                 x = p.poll()
                 if x is not None:
                     break
@@ -761,17 +772,15 @@ distributor-threads={threads}""".format(confdir=confdir,
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
+        message = dns.message.from_wire(data) if data else None
         return message
 
     @classmethod
@@ -787,24 +796,20 @@ distributor-threads={threads}""".format(confdir=confdir,
                 wire = query.to_wire()
                 sock.send(struct.pack("!H", len(wire)))
                 sock.send(wire)
-            for i in range(len(queries)):
+            for _ in range(len(queries)):
                 try:
-                    datalen = sock.recv(2)
-                    if datalen:
+                    if datalen := sock.recv(2):
                         (datalen,) = struct.unpack("!H", datalen)
                         data.append(sock.recv(datalen))
                 except socket.timeout as e:
                     continue
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        messages = []
-        for d in data:
-            messages.append(dns.message.from_wire(d))
-        return messages
+        return [dns.message.from_wire(d) for d in data]
 
     def setUp(self):
         # This function is called before every tests
@@ -821,20 +826,18 @@ distributor-threads={threads}""".format(confdir=confdir,
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        if isinstance(flags, list):
-            for elem in flags:
-                if not isinstance(elem, str):
-                    raise TypeError("flags is not a list of strings")
-        else:
+        if not isinstance(flags, list):
             raise TypeError("flags is not a list of strings")
 
-        if isinstance(ednsflags, list):
-            for elem in ednsflags:
-                if not isinstance(elem, str):
-                    raise TypeError("ednsflags is not a list of strings")
-        else:
+        for elem in flags:
+            if not isinstance(elem, str):
+                raise TypeError("flags is not a list of strings")
+        if not isinstance(ednsflags, list):
             raise TypeError("ednsflags is not a list of strings")
 
+        for elem in ednsflags:
+            if not isinstance(elem, str):
+                raise TypeError("ednsflags is not a list of strings")
         msgFlags = dns.flags.to_text(msg.flags).split()
         missingFlags = [flag for flag in flags if flag not in msgFlags]
 
@@ -842,10 +845,9 @@ distributor-threads={threads}""".format(confdir=confdir,
         missingEdnsFlags = [ednsflag for ednsflag in ednsflags if ednsflag not in msgEdnsFlags]
 
         if len(missingFlags) or len(missingEdnsFlags) or len(msgFlags) > len(flags):
-            raise AssertionError("Expected flags '%s' (EDNS: '%s'), found '%s' (EDNS: '%s') in query %s" %
-                                 (' '.join(flags), ' '.join(ednsflags),
-                                  ' '.join(msgFlags), ' '.join(msgEdnsFlags),
-                                  msg.question[0]))
+            raise AssertionError(
+                f"Expected flags '{' '.join(flags)}' (EDNS: '{' '.join(ednsflags)}'), found '{' '.join(msgFlags)}' (EDNS: '{' '.join(msgEdnsFlags)}') in query {msg.question[0]}"
+            )
 
     def assertMessageIsAuthenticated(self, msg):
         """Asserts that the message has the AD bit set
@@ -856,7 +858,10 @@ distributor-threads={threads}""".format(confdir=confdir,
             raise TypeError("msg is not a dns.message.Message")
 
         msgFlags = dns.flags.to_text(msg.flags)
-        self.assertTrue('AD' in msgFlags, "No AD flag found in the message for %s" % msg.question[0].name)
+        self.assertTrue(
+            'AD' in msgFlags,
+            f"No AD flag found in the message for {msg.question[0].name}",
+        )
 
     def assertRRsetInAnswer(self, msg, rrset):
         """Asserts the rrset (without comparing TTL) exists in the
@@ -876,7 +881,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         for ans in msg.answer:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
+                self.assertEqual(ans, rrset, f"'{ans.to_text()}' != '{rrset.to_text()}'")
                 found = True
 
         if not found:
@@ -900,7 +905,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         for ans in msg.additional:
             ret += "%s\n" % ans.to_text()
             if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
-                self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
+                self.assertEqual(ans, rrset, f"'{ans.to_text()}' != '{rrset.to_text()}'")
                 found = True
 
         if not found:
@@ -936,7 +941,9 @@ distributor-threads={threads}""".format(confdir=confdir,
                 break
 
         if not msgRRSet:
-            raise AssertionError("RRset for '%s' not found in answer" % msg.question[0].to_text())
+            raise AssertionError(
+                f"RRset for '{msg.question[0].to_text()}' not found in answer"
+            )
 
         if not msgRRsigRRSet:
             raise AssertionError("No RRSIGs found in answer for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
@@ -977,7 +984,9 @@ distributor-threads={threads}""".format(confdir=confdir,
                 break
 
         if not msgRRSet:
-            raise AssertionError("RRset for '%s' not found in additional" % msg.question[0].to_text())
+            raise AssertionError(
+                f"RRset for '{msg.question[0].to_text()}' not found in additional"
+            )
 
         if not msgRRsigRRSet:
             raise AssertionError("No RRSIGs found in additional for %s:\nFull answer:\n%s" % (msg.question[0].to_text(), ret))
@@ -994,11 +1003,11 @@ distributor-threads={threads}""".format(confdir=confdir,
         if not isinstance(msg, dns.message.Message):
             raise TypeError("msg is not a dns.message.Message")
 
-        ret = ""
-        for ans in msg.answer:
-            if ans.rdtype == dns.rdatatype.RRSIG:
-                ret += ans.name.to_text() + "\n"
-
+        ret = "".join(
+            ans.name.to_text() + "\n"
+            for ans in msg.answer
+            if ans.rdtype == dns.rdatatype.RRSIG
+        )
         if len(ret):
             raise AssertionError("RRSIG found in answers for:\n%s" % ret)
 
@@ -1010,7 +1019,7 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     def assertRcodeEqual(self, msg, rcode):
         if not isinstance(msg, dns.message.Message):
-            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+            raise TypeError(f"msg is not a dns.message.Message but a {type(msg)}")
 
         if not isinstance(rcode, int):
             if isinstance(rcode, str):
@@ -1022,18 +1031,15 @@ distributor-threads={threads}""".format(confdir=confdir,
             msgRcode = dns.rcode.to_text(msg.rcode())
             wantedRcode = dns.rcode.to_text(rcode)
 
-            raise AssertionError("Rcode for %s is %s, expected %s." % (msg.question[0].to_text(), msgRcode, wantedRcode))
+            raise AssertionError(
+                f"Rcode for {msg.question[0].to_text()} is {msgRcode}, expected {wantedRcode}."
+            )
 
     def assertAuthorityHasSOA(self, msg):
         if not isinstance(msg, dns.message.Message):
-            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+            raise TypeError(f"msg is not a dns.message.Message but a {type(msg)}")
 
-        found = False
-        for rrset in msg.authority:
-            if rrset.rdtype == dns.rdatatype.SOA:
-                found = True
-                break
-
+        found = any(rrset.rdtype == dns.rdatatype.SOA for rrset in msg.authority)
         if not found:
             raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())
 
@@ -1056,9 +1062,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         msg = dns.message.make_query(name, rdtype, want_dnssec=True)
         msg.flags |= dns.flags.AD
 
-        if useTCP:
-            return cls.sendTCPQuery(msg)
-        return cls.sendUDPQuery(msg)
+        return cls.sendTCPQuery(msg) if useTCP else cls.sendUDPQuery(msg)
 
     def createQuery(self, name, rdtype, flags, ednsflags):
         """Helper function that creates the query with the specified flags.
@@ -1087,9 +1091,7 @@ distributor-threads={threads}""".format(confdir=confdir,
             if timeout:
                 cls._sock.settimeout(None)
 
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
+        message = dns.message.from_wire(data) if data else None
         return message
 
     @classmethod
@@ -1112,15 +1114,13 @@ distributor-threads={threads}""".format(confdir=confdir,
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
+        message = dns.message.from_wire(data) if data else None
         return message

@@ -162,17 +162,15 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        res = None
-        if data:
-            res = dns.message.from_wire(data)
+        res = dns.message.from_wire(data) if data else None
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
 
@@ -215,17 +213,15 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        res = None
-        if data:
-            res = dns.message.from_wire(data)
+        res = dns.message.from_wire(data) if data else None
         self.assertEqual(res, None)
 
     def testTCPOneByteAtATimeProxyProtocol(self):
@@ -258,17 +254,15 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        res = None
-        if data:
-            res = dns.message.from_wire(data)
+        res = dns.message.from_wire(data) if data else None
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
 
@@ -314,17 +308,15 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
         finally:
             sock.close()
 
-        res = None
-        if data:
-            res = dns.message.from_wire(data)
+        res = dns.message.from_wire(data) if data else None
         self.assertEqual(res, None)
 
     def testNoHeaderProxyProtocol(self):
@@ -415,7 +407,7 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
         sock.send(ppPayload)
 
         count = 0
-        for idx in range(5):
+        for _ in range(5):
             try:
                 sock.send(struct.pack("!H", len(queryPayload)))
                 sock.send(queryPayload)
@@ -425,11 +417,11 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
                     (datalen,) = struct.unpack("!H", data)
                     data = sock.recv(datalen)
             except socket.timeout as e:
-                print("Timeout: %s" % (str(e)))
+                print(f"Timeout: {str(e)}")
                 data = None
                 break
             except socket.error as e:
-                print("Network error: %s" % (str(e)))
+                print(f"Network error: {str(e)}")
                 data = None
                 break
 

@@ -90,5 +90,5 @@ class CryptoKey:
             except ValueError:
                 self.algo = shorthand_to_algo.get(val, val)
             return
-        raise ValueError("Value is not a str or int, but a {}".format(type(val)))
+        raise ValueError(f"Value is not a str or int, but a {type(val)}")
 

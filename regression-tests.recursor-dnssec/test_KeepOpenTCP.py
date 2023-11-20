@@ -23,7 +23,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
 """.format(soa=cls._SOA))
         super(testKeepOpenTCP, cls).generateRecursorConfig(confdir)
 
-    def sendTCPQueryKeepOpen(cls, sock, query, timeout=2.0):
+    def sendTCPQueryKeepOpen(self, sock, query, timeout=2.0):
         try:
             wire = query.to_wire()
             sock.send(struct.pack("!H", len(wire)))
@@ -33,15 +33,13 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
                 (datalen,) = struct.unpack("!H", data)
                 data = sock.recv(datalen)
         except socket.timeout as e:
-            print("Timeout: %s" % (str(e)))
+            print(f"Timeout: {str(e)}")
             data = None
         except socket.error as e:
-            print("Network error: %s" % (str(e)))
+            print(f"Network error: {str(e)}")
             data = None
 
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
+        message = dns.message.from_wire(data) if data else None
         return message
 
     def testNoTrailingData(self):

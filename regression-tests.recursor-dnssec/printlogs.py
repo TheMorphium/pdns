@@ -16,7 +16,7 @@ for child in root:
                 cls = child.get("classname")
                 name = child.get("name")
                 if '_' not in cls or '.' not in cls:
-                    print('Unexpected classname %s; name %s' % (cls, name))
+                    print(f'Unexpected classname {cls}; name {name}')
                     getstdout = True
                     continue
 
@@ -25,14 +25,14 @@ for child in root:
                     confdir = os.path.join("configs", confdirname)
                     recursorlog = os.path.join(confdir, "recursor.log")
                     if os.path.exists(recursorlog):
-                        print("==============> %s <==============" % recursorlog)
+                        print(f"==============> {recursorlog} <==============")
                         with open(recursorlog) as f:
                             print(''.join(f.readlines()))
                             authdirs = glob.glob(os.path.join(confdir, "auth-*"))
                             for authdir in authdirs:
                                 authlog = os.path.join(authdir, "pdns.log")
                                 if os.path.exists(recursorlog):
-                                    print("==============> %s <==============" % authlog)
+                                    print(f"==============> {authlog} <==============")
                                     with open(authlog) as f:
                                         print(''.join(f.readlines()))
             if getstdout and elem.tag == 'system-out':

@@ -37,7 +37,7 @@ class OOORTCPResponder(object):
                 conn.send(wire)
 
         except ConnectionError as err:
-            print("Error in the thread handling reverse OOOR connections: %s" % (err))
+            print(f"Error in the thread handling reverse OOOR connections: {err}")
         finally:
             conn.close()
 
@@ -50,7 +50,7 @@ class OOORTCPResponder(object):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the TCP responder: %s" % str(e))
+            print(f"Error binding in the TCP responder: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -108,7 +108,7 @@ class ReverseOOORTCPResponder(OOORTCPResponder):
                 queuedResponses.append(response)
 
         except ConnectionError as err:
-            print("Error in the thread handling reverse OOOR connections: %s" % (err))
+            print(f"Error in the thread handling reverse OOOR connections: {err}")
         finally:
             conn.close()
 
@@ -121,7 +121,7 @@ class ReverseOOORTCPResponder(OOORTCPResponder):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the TCP responder: %s" % str(e))
+            print(f"Error binding in the TCP responder: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -172,12 +172,9 @@ class TestOOORWithClientNotBackend(DNSDistTest):
         """
         OOOR: 5 queries
         """
-        names = []
         OOORTCPResponder.numberOfConnections = 0
 
-        for idx in range(5):
-            names.append('%d.simple.ooor.tests.powerdns.com.' % (idx))
-
+        names = ['%d.simple.ooor.tests.powerdns.com.' % (idx) for idx in range(5)]
         conn = self.openTCPConnection()
 
         counter = 0
@@ -190,7 +187,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
@@ -207,12 +204,12 @@ class TestOOORWithClientNotBackend(DNSDistTest):
         """
         OOOR: 100 queries, 10 in flight
         """
-        names = []
         OOORTCPResponder.numberOfConnections = 0
 
-        for idx in range(100):
-            names.append('%d.more-queries.ooor.tests.powerdns.com.' % (idx))
-
+        names = [
+            '%d.more-queries.ooor.tests.powerdns.com.' % (idx)
+            for idx in range(100)
+        ]
         conn = self.openTCPConnection()
 
         counter = 0
@@ -225,7 +222,7 @@ class TestOOORWithClientNotBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
@@ -261,12 +258,12 @@ class TestOOORWithClientAndBackend(DNSDistTest):
         """
         OOOR Reverse: 5 queries
         """
-        names = []
         ReverseOOORTCPResponder.numberOfConnections = 0
 
-        for idx in range(5):
-            names.append('%d.simple.reverse-ooor.tests.powerdns.com.' % (idx))
-
+        names = [
+            '%d.simple.reverse-ooor.tests.powerdns.com.' % (idx)
+            for idx in range(5)
+        ]
         conn = self.openTCPConnection()
 
         counter = 0
@@ -279,7 +276,7 @@ class TestOOORWithClientAndBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
@@ -294,12 +291,12 @@ class TestOOORWithClientAndBackend(DNSDistTest):
         """
         OOOR Reverse: 100 queries, 10 in flight, 5 per backend
         """
-        names = []
         ReverseOOORTCPResponder.numberOfConnections = 0
 
-        for idx in range(100):
-            names.append('%d.more-queries.reverse-ooor.tests.powerdns.com.' % (idx))
-
+        names = [
+            '%d.more-queries.reverse-ooor.tests.powerdns.com.' % (idx)
+            for idx in range(100)
+        ]
         conn = self.openTCPConnection()
 
         counter = 0
@@ -312,12 +309,10 @@ class TestOOORWithClientAndBackend(DNSDistTest):
 
         receivedResponses = {}
 
-        for name in names:
+        for _ in names:
             receivedResponse = self.recvTCPResponseOverConnection(conn)
             self.assertTrue(receivedResponse)
             receivedResponses[str(receivedResponse.question[0].name)] = (receivedResponse)
-            #print("Received a response for %s" % (receivedResponse.question[0].name))
-
         self.assertEqual(len(receivedResponses), 100)
         for idx in range(5):
             self.assertIn('%d.more-queries.reverse-ooor.tests.powerdns.com.' % (idx), receivedResponses)

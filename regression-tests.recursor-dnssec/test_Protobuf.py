@@ -22,43 +22,43 @@ except NameError:
 from recursortests import RecursorTest
 
 def ProtobufConnectionHandler(queue, conn):
-    data = None
-    while True:
-        data = conn.recv(2)
-        if not data:
-            break
-        (datalen,) = struct.unpack("!H", data)
-        data = conn.recv(datalen)
-        if not data:
-            break
+  data = None
+  while True:
+    data = conn.recv(2)
+    if not data:
+        break
+    (datalen,) = struct.unpack("!H", data)
+    if data := conn.recv(datalen):
+      queue.put(data, True, timeout=2.0)
 
-        queue.put(data, True, timeout=2.0)
+    else:
+      break
 
-    conn.close()
+  conn.close()
 
 def ProtobufListener(queue, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+  sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+  try:
+    sock.bind(("127.0.0.1", port))
+  except socket.error as e:
+    print(f"Error binding in the protobuf listener: {str(e)}")
+    sys.exit(1)
+
+  sock.listen(100)
+  while True:
     try:
-        sock.bind(("127.0.0.1", port))
+      (conn, _) = sock.accept()
+      thread = threading.Thread(name='Connection Handler',
+                                target=ProtobufConnectionHandler,
+                                args=[queue, conn])
+      thread.setDaemon(True)
+      thread.start()
+
     except socket.error as e:
-        print("Error binding in the protobuf listener: %s" % str(e))
-        sys.exit(1)
+      print(f'Error in protobuf socket: {str(e)}')
 
-    sock.listen(100)
-    while True:
-        try:
-            (conn, _) = sock.accept()
-            thread = threading.Thread(name='Connection Handler',
-                                      target=ProtobufConnectionHandler,
-                                      args=[queue, conn])
-            thread.setDaemon(True)
-            thread.start()
-
-        except socket.error as e:
-            print('Error in protobuf socket: %s' % str(e))
-
-    sock.close()
+  sock.close()
 
 
 class ProtobufServerParams:
@@ -586,51 +586,51 @@ class OutgoingProtobufDefaultTest(TestRecursorProtobuf):
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
-        # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
-        # So make sure we have the . DNSKEY in cache
-        query = dns.message.make_query('.', 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
-        time.sleep(1)
-        self.emptyProtoBufQueue()
+      # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
+      # So make sure we have the . DNSKEY in cache
+      query = dns.message.make_query('.', 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
+      time.sleep(1)
+      self.emptyProtoBufQueue()
 
-        name = 'host1.secure.example.'
-        expected = list()
+      name = 'host1.secure.example.'
+      expected = []
 
-        for qname, qtype, proto, responseSize in [
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
-                ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
-                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
-        ]:
-            if not qname:
-                expected.append((None, None, None, None, None, None))
-                continue
-            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
-            resp = dns.message.make_response(query)
-            expected.append((
-                qname, qtype, query, resp, proto, responseSize
-            ))
+      for qname, qtype, proto, responseSize in [
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
+              ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
+              ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
+      ]:
+          if not qname:
+              expected.append((None, None, None, None, None, None))
+              continue
+          query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
+          resp = dns.message.make_response(query)
+          expected.append((
+              qname, qtype, query, resp, proto, responseSize
+          ))
 
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+      query = dns.message.make_query(name, 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
 
-        for qname, qtype, qry, ans, proto, responseSize in expected:
-            if not qname:
-                self.getFirstProtobufMessage()
-                self.getFirstProtobufMessage()
-                continue
+      for qname, qtype, qry, ans, proto, responseSize in expected:
+          if not qname:
+              self.getFirstProtobufMessage()
+              self.getFirstProtobufMessage()
+              continue
 
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname)
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname)
 
-            # Check the answer
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
+          # Check the answer
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
 
-        self.checkNoRemainingMessage()
+      self.checkNoRemainingMessage()
 
 class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     """
@@ -656,86 +656,86 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
-        # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
-        # So make sure we have the . DNSKEY in cache
-        query = dns.message.make_query('.', 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
-        time.sleep(1)
-        self.emptyProtoBufQueue()
+      # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
+      # So make sure we have the . DNSKEY in cache
+      query = dns.message.make_query('.', 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
+      time.sleep(1)
+      self.emptyProtoBufQueue()
 
-        name = 'host1.secure.example.'
-        expected = list()
+      name = 'host1.secure.example.'
+      expected = []
 
-        for qname, qtype, proto, responseSize, ecs in [
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248, "1.2.3.0"),
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221, "1.2.3.0"),
-                ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219, "1.2.3.0"),
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175, "1.2.3.0"),
-                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233, "1.2.3.0"),
-        ]:
-            if not qname:
-                expected.append((None, None, None, None, None, None, None))
-                continue
-            ecso = clientsubnetoption.ClientSubnetOption('9.10.11.12', 24)
-            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True, options=[ecso], payload=512)
-            resp = dns.message.make_response(query)
-            expected.append((
-                qname, qtype, query, resp, proto, responseSize, ecs
-            ))
+      for qname, qtype, proto, responseSize, ecs in [
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248, "1.2.3.0"),
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221, "1.2.3.0"),
+              ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219, "1.2.3.0"),
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175, "1.2.3.0"),
+              ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233, "1.2.3.0"),
+      ]:
+          if not qname:
+              expected.append((None, None, None, None, None, None, None))
+              continue
+          ecso = clientsubnetoption.ClientSubnetOption('9.10.11.12', 24)
+          query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True, options=[ecso], payload=512)
+          resp = dns.message.make_response(query)
+          expected.append((
+              qname, qtype, query, resp, proto, responseSize, ecs
+          ))
 
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+      query = dns.message.make_query(name, 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
 
-        for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
-            if not qname:
-                self.getFirstProtobufMessage()
-                self.getFirstProtobufMessage()
-                continue
+      for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
+          if not qname:
+              self.getFirstProtobufMessage()
+              self.getFirstProtobufMessage()
+              continue
 
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
-            # Check the answer
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
+          # Check the answer
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
 
-        self.checkNoRemainingMessage()
+      self.checkNoRemainingMessage()
 
-        # this query should use the unmapped ECS
-        name = 'mx1.secure.example.'
-        expected = list()
+      # this query should use the unmapped ECS
+      name = 'mx1.secure.example.'
+      expected = []
 
-        for qname, qtype, proto, responseSize, ecs in [
-                ('mx1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 173, "127.0.0.1"),
-        ]:
-            if not qname:
-                expected.append((None, None, None, None, None, None, None))
-                continue
-            ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
-            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True, options=[ecso], payload=512)
-            resp = dns.message.make_response(query)
-            expected.append((
-                qname, qtype, query, resp, proto, responseSize, ecs
-            ))
+      for qname, qtype, proto, responseSize, ecs in [
+              ('mx1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 173, "127.0.0.1"),
+      ]:
+          if not qname:
+              expected.append((None, None, None, None, None, None, None))
+              continue
+          ecso = clientsubnetoption.ClientSubnetOption('127.0.0.1', 32)
+          query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True, options=[ecso], payload=512)
+          resp = dns.message.make_response(query)
+          expected.append((
+              qname, qtype, query, resp, proto, responseSize, ecs
+          ))
 
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+      query = dns.message.make_query(name, 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
 
-        for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
-            if not qname:
-                self.getFirstProtobufMessage()
-                self.getFirstProtobufMessage()
-                continue
+      for qname, qtype, qry, ans, proto, responseSize, ecs in expected:
+          if not qname:
+              self.getFirstProtobufMessage()
+              self.getFirstProtobufMessage()
+              continue
 
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
-            # Check the answer
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufOutgoingQuery(msg, proto, qry, dns.rdataclass.IN, qtype, qname, "127.0.0.1", None, ecs)
+          # Check the answer
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufIncomingResponse(msg, proto, ans, length=responseSize)
 
-        self.checkNoRemainingMessage()
+      self.checkNoRemainingMessage()
 
 class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
     """
@@ -757,48 +757,48 @@ class OutgoingProtobufNoQueriesTest(TestRecursorProtobuf):
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
 
     def testA(self):
-        # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
-        # So make sure we have the . DNSKEY in cache
-        query = dns.message.make_query('.', 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
-        time.sleep(1)
-        self.emptyProtoBufQueue()
+      # There is a race in priming (having the . DNSKEY in cache in particular) and this code.
+      # So make sure we have the . DNSKEY in cache
+      query = dns.message.make_query('.', 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
+      time.sleep(1)
+      self.emptyProtoBufQueue()
 
-        name = 'host1.secure.example.'
-        expected = list()
-        # the root DNSKEY has been learned with priming the root NS already
-        # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
-        for qname, qtype, proto, size in [
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
-                ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
-                ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
-                ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
-        ]:
-            if not qname:
-                expected.append((None, None, None, None, None, None))
-                continue
-            query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
-            resp = dns.message.make_response(query)
-            expected.append((
-                qname, qtype, query, resp, proto, size
-            ))
+      name = 'host1.secure.example.'
+      expected = []
+      # the root DNSKEY has been learned with priming the root NS already
+      # ('.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 201),
+      for qname, qtype, proto, size in [
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 248),
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 221),
+              ('example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 219),
+              ('host1.secure.example.', dns.rdatatype.A, dnsmessage_pb2.PBDNSMessage.UDP, 175),
+              ('secure.example.', dns.rdatatype.DNSKEY, dnsmessage_pb2.PBDNSMessage.UDP, 233),
+      ]:
+          if not qname:
+              expected.append((None, None, None, None, None, None))
+              continue
+          query = dns.message.make_query(qname, qtype, use_edns=True, want_dnssec=True)
+          resp = dns.message.make_response(query)
+          expected.append((
+              qname, qtype, query, resp, proto, size
+          ))
 
-        query = dns.message.make_query(name, 'A', want_dnssec=True)
-        query.flags |= dns.flags.RD
-        res = self.sendUDPQuery(query)
+      query = dns.message.make_query(name, 'A', want_dnssec=True)
+      query.flags |= dns.flags.RD
+      res = self.sendUDPQuery(query)
 
-        for qname, qtype, qry, ans, proto, size in expected:
-            if not qname:
-                self.getFirstProtobufMessage()
-                continue
+      for qname, qtype, qry, ans, proto, size in expected:
+          if not qname:
+              self.getFirstProtobufMessage()
+              continue
 
-            # check the response
-            msg = self.getFirstProtobufMessage()
-            self.checkProtobufIncomingResponse(msg, proto, ans, length=size)
+          # check the response
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufIncomingResponse(msg, proto, ans, length=size)
 
-        self.checkNoRemainingMessage()
+      self.checkNoRemainingMessage()
 
 class ProtobufMasksTest(TestRecursorProtobuf):
     """

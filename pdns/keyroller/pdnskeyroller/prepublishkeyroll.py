@@ -38,25 +38,24 @@ class PrePublishKeyRoll(KeyRoll):
         :param int bits: If needed, use this many bits for the new key for ``algo``
         """
         if self.started:
-            raise Exception('Already rolling the {} for {}'.format(
-                self.keytype, zone))
+            raise Exception(f'Already rolling the {self.keytype} for {zone}')
         validate_api(api)
 
         keytype = keytype.lower()
         if keytype not in ('ksk', 'zsk'):
-            raise Exception('Invalid key type: {}'.format(keytype))
+            raise Exception(f'Invalid key type: {keytype}')
 
         current_keys = get_keys_of_type(zone, api, keytype)
         algo = DNSKEY_ALGO_TO_MNEMONIC.get(algo, algo)
         if not current_keys:
-            raise Exception('There are no keys of type {} in zone {}, cannot roll!'.format(keytype, zone))
-        if not any([k.algo == algo and k.keytype == keytype for k in current_keys]):
-            raise Exception('No keys for algorithm {} in zone {}, cannot roll!'.format(algo, zone))
+            raise Exception(
+                f'There are no keys of type {keytype} in zone {zone}, cannot roll!'
+            )
+        if not any(k.algo == algo and k.keytype == keytype for k in current_keys):
+            raise Exception(f'No keys for algorithm {algo} in zone {zone}, cannot roll!')
 
-        active = True
         published = True
-        if keytype == "zsk":
-            active = False
+        active = keytype != "zsk"
         new_key = api.add_cryptokey(zone, keytype, active=active, algo=algo, bits=bits, published=published)
         self.current_step = 1
         self.complete = False
@@ -92,11 +91,14 @@ class PrePublishKeyRoll(KeyRoll):
         """
         validate_api(api)
         if not self.validate(zone, api):
-            raise Exception('Keys for zone {}  do not match keys initially found. Refusing to continue'.format(zone))
+            raise Exception(
+                f'Keys for zone {zone}  do not match keys initially found. Refusing to continue'
+            )
 
         if not self.started:
-            raise Exception('Can not go to the next step in phase "{}", did you mean to call initialize()?'.format(
-                self.current_step_name))
+            raise Exception(
+                f'Can not go to the next step in phase "{self.current_step_name}", did you mean to call initialize()?'
+            )
 
         # make sure we are passed the expected datetime
         if self.current_step_datetime > datetime.now():
@@ -144,7 +146,7 @@ class PrePublishKeyRoll(KeyRoll):
                 self.step_datetimes.append(datetime.now())
 
         else:
-            raise Exception("Unknown step number {}".format(self.current_step))
+            raise Exception(f"Unknown step number {self.current_step}")
 
     def validate(self, zone, api):
         """
@@ -158,8 +160,11 @@ class PrePublishKeyRoll(KeyRoll):
         validate_api(api)
         to_match = self.old_keyids.copy()
         to_match.append(self.new_keyid)
-        return all([k.id in to_match for k in api.get_cryptokeys(zone)
-                    if k.algo == self.algo and k.keytype == self.keytype])
+        return all(
+            k.id in to_match
+            for k in api.get_cryptokeys(zone)
+            if k.algo == self.algo and k.keytype == self.keytype
+        )
 
     def __str__(self):
         return json_tricks.dumps({
@@ -200,16 +205,30 @@ class PrePublishKeyRoll(KeyRoll):
 
     def __repr__(self):
         return 'PrePublishRoll({})'.format(
-            ', '.join(['{}={}'.format(k, v) for k, v in [
-                ('current_step', self.current_step),
-                ('complete', self.complete),
-                ('current_step_datetime', self.current_step_datetime.timestamp()),
-                ('step_datetimes', list(map(lambda d: d.timestamp(), self.step_datetimes))),
-                ('keytype', self.keytype),
-                ('algo', self.algo),
-                ('old_keyids', self.old_keyids),
-                ('new_keyid', self.new_keyid),
-            ]]))
+            ', '.join(
+                [
+                    f'{k}={v}'
+                    for k, v in [
+                        ('current_step', self.current_step),
+                        ('complete', self.complete),
+                        (
+                            'current_step_datetime',
+                            self.current_step_datetime.timestamp(),
+                        ),
+                        (
+                            'step_datetimes',
+                            list(
+                                map(lambda d: d.timestamp(), self.step_datetimes)
+                            ),
+                        ),
+                        ('keytype', self.keytype),
+                        ('algo', self.algo),
+                        ('old_keyids', self.old_keyids),
+                        ('new_keyid', self.new_keyid),
+                    ]
+                ]
+            )
+        )
 
     @property
     def started(self):

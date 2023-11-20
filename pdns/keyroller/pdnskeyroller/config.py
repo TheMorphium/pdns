@@ -39,11 +39,10 @@ class KeyrollerConfig:
             },
         }
 
-        logger.debug("Loading configuration from {}".format(self._configfile))
+        logger.debug(f"Loading configuration from {self._configfile}")
         try:
             with open(self._configfile, 'r') as f:
-                a = yaml.safe_load(f)
-                if a:
+                if a := yaml.safe_load(f):
                     for k, v in tmp_conf.items():
                         if isinstance(v, dict) and isinstance(a.get(k), dict):
                             tmp_conf[k].update(a.get(k))
@@ -53,11 +52,11 @@ class KeyrollerConfig:
             loglevel = getattr(logging, tmp_conf['keyroller']['loglevel'].upper())
             if not isinstance(loglevel, int):
                 loglevel = logging.INFO
-            logger.info("Setting loglevel to {}".format(loglevel))
+            logger.info(f"Setting loglevel to {loglevel}")
             logging.basicConfig(level=loglevel)
 
         except FileNotFoundError as e:
-            logger.error('Unable to load configuration file: {}'.format(e))
+            logger.error(f'Unable to load configuration file: {e}')
 
         return tmp_conf
 

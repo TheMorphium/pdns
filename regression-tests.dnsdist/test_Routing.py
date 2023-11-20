@@ -243,7 +243,7 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
         total = 0
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
-            self.assertTrue(value == numberOfQueries or value == 0)
+            self.assertTrue(value in [numberOfQueries, 0])
             total += value
 
         self.assertEqual(total, numberOfQueries * 2)
@@ -714,13 +714,7 @@ class TestRoutingHighValueWRandom(DNSDistTest):
             self.assertEqual(response, receivedResponse)
 
         stats = self.sendConsoleCommand("dumpStats()").split()
-        stats_dict = {}
-
-        # Map to a dict with every other element being the value to the previous one
-        for i, x in enumerate(stats):
-            if not i % 2:
-                stats_dict[x] = stats[i+1]
-
+        stats_dict = {x: stats[i+1] for i, x in enumerate(stats) if not i % 2}
         # There should be no queries getting "no-policy" responses
         self.assertEqual(stats_dict['no-policy'], '0')
 

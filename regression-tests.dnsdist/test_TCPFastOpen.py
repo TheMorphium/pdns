@@ -37,7 +37,7 @@ class TestBrokenTCPFastOpen(DNSDistTest):
         try:
             sock.bind(("127.0.0.1", port))
         except socket.error as e:
-            print("Error binding in the TCP responder: %s" % str(e))
+            print(f"Error binding in the TCP responder: {str(e)}")
             sys.exit(1)
 
         sock.listen(100)
@@ -46,12 +46,14 @@ class TestBrokenTCPFastOpen(DNSDistTest):
             try:
                 (conn, _) = sock.accept()
             except socket.timeout:
-                if cls._backgroundThreads.get(threading.get_native_id(), False) == False:
-                    del cls._backgroundThreads[threading.get_native_id()]
-                    break
-                else:
+                if (
+                    cls._backgroundThreads.get(threading.get_native_id(), False)
+                    != False
+                ):
                     continue
 
+                del cls._backgroundThreads[threading.get_native_id()]
+                break
             conn.settimeout(5.0)
             data = conn.recv(2)
             if not data:
@@ -91,7 +93,7 @@ class TestBrokenTCPFastOpen(DNSDistTest):
         self.assertFalse(receivedResponse)
 
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)

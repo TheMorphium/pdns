@@ -24,7 +24,7 @@ def readRecord(fp, withTimestamp):
             break
         label = fp.read(labelLen)
         if qname != '':
-            qname = qname + '.'
+            qname = f'{qname}.'
         qname = qname + label.decode()
 
     qtype = struct.unpack("H", fp.read(2))[0]
@@ -54,7 +54,7 @@ def readLogFile(filename, withTimestamps):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 and (len(sys.argv) != 3 or sys.argv[2] != 'with-timestamps'):
-        sys.exit('Usage: %s <path to log file> [with-timestamps]' % (sys.argv[0]))
+        sys.exit(f'Usage: {sys.argv[0]} <path to log file> [with-timestamps]')
 
     readLogFile(sys.argv[1], len(sys.argv) == 3)
 

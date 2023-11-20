@@ -89,9 +89,9 @@ class IXFRDistBasicTest(IXFRDistTest):
 
         attempts = 0
         while attempts < timeout:
-            print('attempts=%s timeout=%s' % (attempts, timeout))
+            print(f'attempts={attempts} timeout={timeout}')
             servedSerial = get_current_serial()
-            print('servedSerial=%s' % servedSerial)
+            print(f'servedSerial={servedSerial}')
             if servedSerial > serial:
                 raise AssertionError("Expected serial %d, got %d" % (serial, servedSerial))
             if servedSerial == serial:
@@ -99,7 +99,7 @@ class IXFRDistBasicTest(IXFRDistTest):
                 self._loaded_serials.append(serial)
                 return
 
-            attempts = attempts + 1
+            attempts += 1
             time.sleep(1)
 
         raise AssertionError("Waited %d seconds for the serial to be updated to %d but the last served serial is still %d" % (timeout, serial, servedSerial))

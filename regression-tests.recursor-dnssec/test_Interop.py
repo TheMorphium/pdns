@@ -141,7 +141,7 @@ forward-zones+=undelegated.insecure.example=%s.12
     def startResponders(cls):
         print("Launching responders..")
 
-        address = cls._PREFIX + '.2'
+        address = f'{cls._PREFIX}.2'
         port = 53
 
         reactor.listenUDP(port, UDPResponder(), interface=address)
@@ -233,14 +233,13 @@ class UDPResponder(DatagramProtocol):
             response.use_edns(edns=-1)
 
             response.additional = []
-        else:
-            if request.question[0].name == dns.name.from_text('host1.insecure-formerr.example.') and request.question[0].rdtype == dns.rdatatype.A:
-                answer = dns.rrset.from_text('host1.insecure-formerr.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
-                response.answer.append(answer)
-            elif request.question[0].name == dns.name.from_text('insecure-formerr.example.') and request.question[0].rdtype == dns.rdatatype.NS:
-                answer = dns.rrset.from_text('insecure-formerr.example.', 15, dns.rdataclass.IN, 'NS', 'ns1.insecure-formerr.example.')
-                response.answer.append(answer)
-                additional = dns.rrset.from_text('ns1.insecure-formerr.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.2')
-                response.additional.append(additional)
+        elif request.question[0].name == dns.name.from_text('host1.insecure-formerr.example.') and request.question[0].rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('host1.insecure-formerr.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+            response.answer.append(answer)
+        elif request.question[0].name == dns.name.from_text('insecure-formerr.example.') and request.question[0].rdtype == dns.rdatatype.NS:
+            answer = dns.rrset.from_text('insecure-formerr.example.', 15, dns.rdataclass.IN, 'NS', 'ns1.insecure-formerr.example.')
+            response.answer.append(answer)
+            additional = dns.rrset.from_text('ns1.insecure-formerr.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.2')
+            response.additional.append(additional)
 
         self.transport.write(response.to_wire(), address)

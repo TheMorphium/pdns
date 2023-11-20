@@ -25,9 +25,9 @@ class LookupThread(threading.Thread):
             with atomic_write(self.fname, overwrite=True) as out:
                 out.write('return {\n')
                 for name,addrs in ips.items():
-                    out.write('  ["{}"]='.format(name) + '{\n')
+                    out.write(f'  ["{name}"]=' + '{\n')
                     for addr in addrs:
-                        out.write('    "{}",\n'.format(addr))
+                        out.write(f'    "{addr}",\n')
                     out.write('  },\n')
                 out.write('}\n')
 

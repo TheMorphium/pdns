@@ -24,7 +24,7 @@ class OutgoingTLSTests(object):
 
     def getServerStat(self, key):
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)

@@ -52,9 +52,7 @@ class TLSTests(object):
         altNames = cert['subjectAltName']
         self.assertEqual(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
         self.assertEqual(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
-        names = []
-        for entry in altNames:
-            names.append(entry[1])
+        names = [entry[1] for entry in altNames]
         self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com', '127.0.0.1'])
         serialNumber = cert['serialNumber']
 
@@ -82,9 +80,7 @@ class TLSTests(object):
         altNames = cert['subjectAltName']
         self.assertEqual(dict(subject[0])['commonName'], 'tls.tests.dnsdist.org')
         self.assertEqual(dict(subject[1])['organizationalUnitName'], 'PowerDNS.com BV')
-        names = []
-        for entry in altNames:
-            names.append(entry[1])
+        names = [entry[1] for entry in altNames]
         self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com', '127.0.0.1'])
 
         # and that the serial is different
@@ -107,7 +103,7 @@ class TLSTests(object):
 
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
 
-        for idx in range(5):
+        for _ in range(5):
             self.sendTCPQueryOverConnection(conn, query, response=response)
             (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
             self.assertTrue(receivedQuery)
@@ -134,10 +130,10 @@ class TLSTests(object):
 
         conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
 
-        for idx in range(100):
+        for _ in range(100):
             self.sendTCPQueryOverConnection(conn, query, response=response)
 
-        for idx in range(100):
+        for _ in range(100):
             (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True)
             self.assertTrue(receivedQuery)
             self.assertTrue(receivedResponse)
@@ -339,7 +335,7 @@ class TestDOTWithCache(DNSDistTest):
         content = ""
         for i in range(44):
             if len(content) > 0:
-                content = content + ', '
+                content = f'{content}, '
             content = content + (str(i)*50)
         # pad up to 4096
         content = content + 'A'*40
@@ -404,7 +400,7 @@ class TestTLSFrontendLimits(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         conns = []
 
-        for idx in range(self._maxTCPConnsPerTLSFrontend + 1):
+        for _ in range(self._maxTCPConnsPerTLSFrontend + 1):
             try:
                 conns.append(self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert))
             except:

@@ -369,7 +369,15 @@ class TestDOH(DNSDistDOHTest):
         expectedResponse.answer.append(rrset)
 
         # this path should match
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS', caFile=self._caCert, query=query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f'{self._dohBaseURL}PowerDNS',
+            caFile=self._caCert,
+            query=query,
+            response=None,
+            useQueue=False,
+        )
         self.assertEqual(receivedResponse, expectedResponse)
 
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
@@ -384,7 +392,14 @@ class TestDOH(DNSDistDOHTest):
         response.answer.append(rrset)
 
         # this path should NOT match
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "PowerDNS2", query, response=response, caFile=self._caCert)
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f"{self._dohBaseURL}PowerDNS2",
+            query,
+            response=response,
+            caFile=self._caCert,
+        )
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
@@ -393,7 +408,15 @@ class TestDOH(DNSDistDOHTest):
         self.assertEqual(response, receivedResponse)
 
         # this path is not in the URLs map and should lead to a 404
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "PowerDNS/something", query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f"{self._dohBaseURL}PowerDNS/something",
+            query,
+            caFile=self._caCert,
+            useQueue=False,
+            rawResponse=True,
+        )
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, b'there is no endpoint configured for this path')
         self.assertEqual(self._rcode, 404)
@@ -415,7 +438,15 @@ class TestDOH(DNSDistDOHTest):
         expectedResponse.answer.append(rrset)
 
         # this path should match
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS-999', caFile=self._caCert, query=query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f'{self._dohBaseURL}PowerDNS-999',
+            caFile=self._caCert,
+            query=query,
+            response=None,
+            useQueue=False,
+        )
         self.assertEqual(receivedResponse, expectedResponse)
 
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
@@ -430,7 +461,14 @@ class TestDOH(DNSDistDOHTest):
         response.answer.append(rrset)
 
         # this path should NOT match
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "PowerDNS2", query, response=response, caFile=self._caCert)
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f"{self._dohBaseURL}PowerDNS2",
+            query,
+            response=response,
+            caFile=self._caCert,
+        )
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
@@ -484,7 +522,7 @@ class TestDOH(DNSDistDOHTest):
         DOH: HTTP Early Response
         """
         response_headers = BytesIO()
-        url = self._dohBaseURL + 'coffee'
+        url = f'{self._dohBaseURL}coffee'
         conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
@@ -555,7 +593,15 @@ class TestDOHSubPaths(DNSDistDOHTest):
         expectedResponse.answer.append(rrset)
 
         # this path should match
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS', caFile=self._caCert, query=query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f'{self._dohBaseURL}PowerDNS',
+            caFile=self._caCert,
+            query=query,
+            response=None,
+            useQueue=False,
+        )
         self.assertEqual(receivedResponse, expectedResponse)
 
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
@@ -570,13 +616,29 @@ class TestDOHSubPaths(DNSDistDOHTest):
         response.answer.append(rrset)
 
         # this path is not in the URLs map and should lead to a 404
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "NotPowerDNS", query, caFile=self._caCert, useQueue=False, rawResponse=True)
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f"{self._dohBaseURL}NotPowerDNS",
+            query,
+            caFile=self._caCert,
+            useQueue=False,
+            rawResponse=True,
+        )
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, b'not found')
         self.assertEqual(self._rcode, 404)
 
         # this path is below one in the URLs map and exactPathMatching is false, so we should be good
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + 'PowerDNS/something', caFile=self._caCert, query=query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            f'{self._dohBaseURL}PowerDNS/something',
+            caFile=self._caCert,
+            query=query,
+            response=None,
+            useQueue=False,
+        )
         self.assertEqual(receivedResponse, expectedResponse)
 
 class TestDOHAddingECS(DNSDistDOHTest):
@@ -772,7 +834,7 @@ class TestDOHWithCache(DNSDistDOHTest):
         content = ""
         for i in range(44):
             if len(content) > 0:
-                content = content + ', '
+                content = f'{content}, '
             content = content + (str(i)*50)
         # pad up to 4096
         content = content + 'A'*40
@@ -798,13 +860,17 @@ class TestDOHWithCache(DNSDistDOHTest):
         for _ in range(numberOfQueries):
             (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
             self.assertEqual(receivedResponse, response)
-            self.checkHasHeader('cache-control', 'max-age=' + str(receivedResponse.answer[0].ttl))
+            self.checkHasHeader(
+                'cache-control', f'max-age={str(receivedResponse.answer[0].ttl)}'
+            )
 
         time.sleep(1)
 
         (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
         self.assertEqual(receivedResponse, response)
-        self.checkHasHeader('cache-control', 'max-age=' + str(receivedResponse.answer[0].ttl))
+        self.checkHasHeader(
+            'cache-control', f'max-age={str(receivedResponse.answer[0].ttl)}'
+        )
 
     def testDOHGetFromUDPCache(self):
         """
@@ -1184,7 +1250,7 @@ class TestDOHFrontendLimits(DNSDistDOHTest):
         query = b"GET / HTTP/1.0\r\n\r\n"
         conns = []
 
-        for idx in range(self._maxTCPConnsPerDOHFrontend + 1):
+        for _ in range(self._maxTCPConnsPerDOHFrontend + 1):
             try:
                 conns.append(self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert))
             except:
@@ -1356,7 +1422,7 @@ class TestDOHLimits(DNSDistDOHTest):
         url = self.getDOHGetURL(self._dohBaseURL, query)
         conns = []
 
-        for idx in range(self._maxTCPConnsPerClient + 1):
+        for _ in range(self._maxTCPConnsPerClient + 1):
             conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
             conn.setopt(pycurl.URL, url)
             conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])

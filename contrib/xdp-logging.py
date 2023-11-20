@@ -25,10 +25,9 @@ def decode_qname(qname_array):
         if length == 0:
             if int(qname_byte) == 0:
                 break
-            else:
-                length = int(qname_byte)
-                if qname != "":
-                    qname += '.'
+            length = int(qname_byte)
+            if qname != "":
+                qname += '.'
         else:
             qname += chr(int(qname_byte))
             length -= 1
@@ -39,7 +38,15 @@ def print_event(cpu, data, size):
     if event.ipv4_src != 0:
         src_ip = str(netaddr.IPAddress(socket.htonl(event.ipv4_src)))
     else:
-        src_ip = str(netaddr.IPAddress(sum([byte << 8*(15-index) for index, byte in enumerate(event.ipv6_src)]), 6))
+        src_ip = str(
+            netaddr.IPAddress(
+                sum(
+                    byte << 8 * (15 - index)
+                    for index, byte in enumerate(event.ipv6_src)
+                ),
+                6,
+            )
+        )
     qtype = INV_QTYPES[socket.htons(event.query.qtype)]
     qname = decode_qname(event.query.qname)
     print(f"{src_ip}|{qtype}|{qname}")

@@ -13,22 +13,18 @@ logger = logging.getLogger('pdns-keyroller')
 
 def display_keyrollerdomain_infos(zone, api):
     zoneconf = keyrollerdomain.KeyrollerDomain(zone, api)
-    if zoneconf.state :
+    if zoneconf.state:
         if zoneconf.state.is_rolling:
             timeleft = zoneconf.state.current_roll.current_step_datetime - datetime.now()
             logger.info(
-                '{} is rolling its {} using the {} method. It is in the step {}, which was made {}. Next step scheduled {}'.format(
-                    zone, zoneconf.state.current_roll.keytype.upper(),
-                    zoneconf.state.current_roll.rolltype, zoneconf.state.current_roll.current_step_name,
-                    zoneconf.state.current_roll.step_datetimes[-1],
-                    "in {}".format(timeleft) if timeleft > timedelta(0) else "ASAP"
-                )
+                f'{zone} is rolling its {zoneconf.state.current_roll.keytype.upper()} using the {zoneconf.state.current_roll.rolltype} method. It is in the step {zoneconf.state.current_roll.current_step_name}, which was made {zoneconf.state.current_roll.step_datetimes[-1]}. Next step scheduled {f"in {timeleft}" if timeleft > timedelta(0) else "ASAP"}'
             )
         else:
-            logger.info('{} is not rolling. Last KSK roll was {} and the last ZSK roll was {}'.format(
-                zone, zoneconf.state.last_ksk_roll_str, zoneconf.state.last_zsk_roll_str))
-    else :
-        logger.info('{} is not rolling'.format(zone))
+            logger.info(
+                f'{zone} is not rolling. Last KSK roll was {zoneconf.state.last_ksk_roll_str} and the last ZSK roll was {zoneconf.state.last_zsk_roll_str}'
+            )
+    else:
+        logger.info(f'{zone} is not rolling')
 
 if __name__ == '__main__':
     argp = argparse.ArgumentParser(

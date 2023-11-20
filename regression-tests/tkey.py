@@ -20,7 +20,7 @@ def main(host, port):
   # make sure the data validates
 
   # transaction id
-  ensure(data, 0, msg[0:2])
+  ensure(data, 0, msg[:2])
 
   # has one question, one answer
   ensure(data, 4, b"\x00\x01")

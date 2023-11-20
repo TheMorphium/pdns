@@ -337,7 +337,7 @@ def get_sanitizers():
     sanitizers = os.getenv('SANITIZERS')
     if sanitizers != '':
         sanitizers = sanitizers.split('+')
-        sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
+        sanitizers = [f'--enable-{sanitizer}' for sanitizer in sanitizers]
         sanitizers = ' '.join(sanitizers)
     return sanitizers
 
@@ -510,9 +510,13 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_FALSE_SHARING_PADDING \
                           -DDISABLE_NPN'
     unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
+    sanitizers = (
+        ' '.join(f'--enable-{x}' for x in os.getenv('SANITIZERS').split('+'))
+        if os.getenv('SANITIZERS') != ''
+        else ''
+    )
     cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
-    cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
+    cxxflags = f'{cflags} -Wp,-D_GLIBCXX_ASSERTIONS {additional_flags}'
     res = c.run(f'''CFLAGS="%s" \
                    CXXFLAGS="%s" \
                    AR=llvm-ar-{clang_version} \

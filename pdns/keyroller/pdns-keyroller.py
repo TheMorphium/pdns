@@ -27,11 +27,11 @@ if __name__ == '__main__':
     try:
         d = pdnskeyroller.daemon.Daemon(arguments.config)
     except ConnectionError as e:
-        logger.fatal('Unable to start: {}'.format(e))
+        logger.fatal(f'Unable to start: {e}')
         sys.exit(1)
 
     try:
         d.run()
     except Exception as e:
         print(traceback.extract_tb(e))
-        logger.error("Unable to run: {}".format(e))
+        logger.error(f"Unable to run: {e}")

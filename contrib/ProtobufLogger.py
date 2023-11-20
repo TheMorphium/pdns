@@ -76,9 +76,7 @@ class PDNSPBConnHandler(object):
 
     def printQuery(self, message):
         if message.HasField('question'):
-            qclass = 1
-            if message.question.HasField('qClass'):
-                qclass = message.question.qClass
+            qclass = message.question.qClass if message.question.HasField('qClass') else 1
             print("- Question: %d, %d, %s" % (qclass,
                                               message.question.qType,
                                               message.question.qName))
@@ -127,10 +125,7 @@ class PDNSPBConnHandler(object):
                       valstr = binascii.hexlify(event.bytesVal)
                 if len(valstr) > 0:
                     valstr = ',' + valstr
-                if not event.start:
-                    startstr = ',done'
-                else:
-                    startstr = ''
+                startstr = ',done' if not event.start else ''
                 print("\t- %s%s%s)" % (ev, valstr, startstr))
 
         if message.HasField('response'):

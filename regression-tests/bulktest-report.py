@@ -6,18 +6,12 @@ runs = json.load(sys.stdin)
 
 selectors = dict(s.split('=',1) for s in sys.argv[1:])
 
-selected=list()
+selected = []
 
 names=set()
 
 for run in runs:
-	match = True
-	for k,v in selectors.iteritems():
-		# print k, v, run[k]
-		if run[k] != v:
-			match = False
-			break
-
+	match = all(run[k] == v for k, v in selectors.iteritems())
 	if match:
 		selected.append((run['tag'], run))
 		names.update(run)

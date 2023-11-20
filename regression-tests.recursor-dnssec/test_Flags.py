@@ -64,10 +64,7 @@ class TestFlags(RecursorTest):
             if timeout:
                 cls._sock[dnssec_setting].settimeout(None)
 
-        msg = None
-        if data:
-            msg = dns.message.from_wire(data)
-        return msg
+        return dns.message.from_wire(data) if data else None
 
     @classmethod
     def tearDownClass(cls):
