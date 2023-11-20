@@ -8,8 +8,9 @@ import argparse
 
 def get_commits(pr):
     try:
-        res = requests.get('https://api.github.com/repos/PowerDNS/pdns/pulls/'
-                           '{}/commits'.format(pr)).json()
+        res = requests.get(
+            f'https://api.github.com/repos/PowerDNS/pdns/pulls/{pr}/commits'
+        ).json()
         return [c['sha'] for c in res]
     except (ValueError, requests.exceptions.HTTPError) as e:
         print(e)
@@ -41,8 +42,13 @@ a.add_argument(
 args = a.parse_args()
 
 if args.backport_unto:
-    command = ['git', 'checkout', '-b',
-               'backport-{}-to-{}'.format(args.pull_request, args.backport_unto[0].split('/')[-1]), args.backport_unto[0]]
+    command = [
+        'git',
+        'checkout',
+        '-b',
+        f"backport-{args.pull_request}-to-{args.backport_unto[0].split('/')[-1]}",
+        args.backport_unto[0],
+    ]
     run_command(command)
 
     commits = get_commits(args.pull_request)
@@ -53,7 +59,12 @@ if args.merge_into:
     command = ['git', 'checkout', args.merge_into[0]]
     run_command(command)
 
-    command = ['git', 'merge', '--no-ff',
-               'backport-{}-to-{}'.format(args.pull_request, args.merge_into[0].split('/')[-1]), '-m',
-               'Backport #{}'.format(args.pull_request)]
+    command = [
+        'git',
+        'merge',
+        '--no-ff',
+        f"backport-{args.pull_request}-to-{args.merge_into[0].split('/')[-1]}",
+        '-m',
+        f'Backport #{args.pull_request}',
+    ]
     run_command(command)

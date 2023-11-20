@@ -76,7 +76,9 @@ negquery-cache-ttl=60
     @classmethod
     def setUpClass(cls):
         super(TestIXFR, cls).setUpClass()
-        os.system("$PDNSUTIL --config-dir=configs/auth create-slave-zone example. 127.0.0.1:%s" % (xfrServerPort,))
+        os.system(
+            f"$PDNSUTIL --config-dir=configs/auth create-slave-zone example. 127.0.0.1:{xfrServerPort}"
+        )
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta example. IXFR 1")
 
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=10):
@@ -86,9 +88,9 @@ negquery-cache-ttl=60
 
         attempts = 0
         while attempts < timeout:
-            print('attempts=%s timeout=%s' % (attempts, timeout))
+            print(f'attempts={attempts} timeout={timeout}')
             servedSerial = xfrServer.getServedSerial()
-            print('servedSerial=%s' % servedSerial)
+            print(f'servedSerial={servedSerial}')
             if servedSerial > serial:
                 raise AssertionError("Expected serial %d, got %d" % (serial, servedSerial))
             if servedSerial == serial:
@@ -96,7 +98,7 @@ negquery-cache-ttl=60
                 time.sleep(1)
                 return
 
-            attempts = attempts + 1
+            attempts += 1
             time.sleep(1)
 
         raise AssertionError("Waited %d seconds for the serial to be updated to %d but the last served serial is still %d" % (timeout, serial, servedSerial))

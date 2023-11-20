@@ -31,104 +31,102 @@ class TestTCPLimits(DNSDistTest):
     _verboseMode = True
 
     def testTCPQueriesPerConn(self):
-        """
+      """
         TCP Limits: Maximum number of queries
         """
-        name = 'maxqueriesperconn.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        conn = self.openTCPConnection()
+      name = 'maxqueriesperconn.tcp.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      conn = self.openTCPConnection()
 
-        count = 0
-        for idx in range(self._maxTCPQueriesPerConn):
-            try:
-                self.sendTCPQueryOverConnection(conn, query)
-                response = self.recvTCPResponseOverConnection(conn)
-                self.assertTrue(response)
-                count = count + 1
-            except:
-                pass
-
-        # this one should fail
-        failed = False
+      count = 0
+      for _ in range(self._maxTCPQueriesPerConn):
         try:
             self.sendTCPQueryOverConnection(conn, query)
             response = self.recvTCPResponseOverConnection(conn)
-            self.assertFalse(response)
-            if not response:
-                failed = True
-            else:
-                count = count + 1
+            self.assertTrue(response)
+            count = count + 1
         except:
-            failed = True
+            pass
 
-        conn.close()
-        self.assertTrue(failed)
-        self.assertEqual(count, self._maxTCPQueriesPerConn)
+      # this one should fail
+      failed = False
+      try:
+          self.sendTCPQueryOverConnection(conn, query)
+          response = self.recvTCPResponseOverConnection(conn)
+          self.assertFalse(response)
+          if not response:
+              failed = True
+          else:
+              count = count + 1
+      except:
+          failed = True
+
+      conn.close()
+      self.assertTrue(failed)
+      self.assertEqual(count, self._maxTCPQueriesPerConn)
 
     def testTCPConnsPerClient(self):
-        """
+      """
         TCP Limits: Maximum number of conns per client
         """
-        name = 'maxconnsperclient.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        conns = []
+      name = 'maxconnsperclient.tcp.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      conns = [
+          self.openTCPConnection() for _ in range(self._maxTCPConnsPerClient + 1)
+      ]
+      count = 0
+      failed = 0
+      for conn in conns:
+          try:
+              self.sendTCPQueryOverConnection(conn, query)
+              response = self.recvTCPResponseOverConnection(conn)
+              if response:
+                  count = count + 1
+              else:
+                  failed = failed + 1
+          except:
+              failed = failed + 1
 
-        for idx in range(self._maxTCPConnsPerClient + 1):
-            conns.append(self.openTCPConnection())
+      for conn in conns:
+          conn.close()
 
-        count = 0
-        failed = 0
-        for conn in conns:
-            try:
-                self.sendTCPQueryOverConnection(conn, query)
-                response = self.recvTCPResponseOverConnection(conn)
-                if response:
-                    count = count + 1
-                else:
-                    failed = failed + 1
-            except:
-                failed = failed + 1
+      # wait a bit to be sure that dnsdist closed the connections
+      # and decremented the counters on its side, otherwise subsequent
+      # connections will be dropped
+      time.sleep(1)
 
-        for conn in conns:
-            conn.close()
-
-        # wait a bit to be sure that dnsdist closed the connections
-        # and decremented the counters on its side, otherwise subsequent
-        # connections will be dropped
-        time.sleep(1)
-
-        self.assertEqual(count, self._maxTCPConnsPerClient)
-        self.assertEqual(failed, 1)
+      self.assertEqual(count, self._maxTCPConnsPerClient)
+      self.assertEqual(failed, 1)
 
     def testTCPDuration(self):
-        """
+      """
         TCP Limits: Maximum duration
         """
-        name = 'duration.tcp.tests.powerdns.com.'
+      name = 'duration.tcp.tests.powerdns.com.'
 
-        start = time.time()
-        conn = self.openTCPConnection()
-        # immediately send the maximum size
-        conn.send(struct.pack("!H", 65535))
+      start = time.time()
+      conn = self.openTCPConnection()
+      # immediately send the maximum size
+      conn.send(struct.pack("!H", 65535))
 
-        count = 0
-        while count < (self._maxTCPConnDuration * 20):
-            try:
-                # sleeping for only one second keeps us below the
-                # idle timeout (setTCPRecvTimeout())
-                time.sleep(0.1)
-                conn.send(b'A')
-                count = count + 1
-            except Exception as e:
-                print("Exception: %s!" % (e))
-                break
+      count = 0
+      while count < (self._maxTCPConnDuration * 20):
+        try:
+          # sleeping for only one second keeps us below the
+          # idle timeout (setTCPRecvTimeout())
+          time.sleep(0.1)
+          conn.send(b'A')
+          count += 1
+        except Exception as e:
+          print(f"Exception: {e}!")
+          break
 
-        end = time.time()
+      end = time.time()
 
-        self.assertAlmostEqual(count / 10, self._maxTCPConnDuration, delta=2)
-        self.assertAlmostEqual(end - start, self._maxTCPConnDuration, delta=2)
+      self.assertAlmostEqual(count / 10, self._maxTCPConnDuration, delta=2)
+      self.assertAlmostEqual(end - start, self._maxTCPConnDuration, delta=2)
 
-        conn.close()
+      conn.close()
 
 class TestTCPFrontendLimits(DNSDistTest):
 
@@ -148,36 +146,34 @@ class TestTCPFrontendLimits(DNSDistTest):
     _verboseMode = True
 
     def testTCPConnsPerFrontend(self):
-        """
+      """
         TCP Frontend Limits: Maximum number of conns per frontend
         """
-        name = 'maxconnsperfrontend.tcp.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        conns = []
+      name = 'maxconnsperfrontend.tcp.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      conns = [
+          self.openTCPConnection() for _ in range(self._maxTCPConnsPerFrontend + 1)
+      ]
+      count = 0
+      failed = 0
+      for conn in conns:
+          try:
+              self.sendTCPQueryOverConnection(conn, query)
+              response = self.recvTCPResponseOverConnection(conn)
+              if response:
+                  count = count + 1
+              else:
+                  failed = failed + 1
+          except:
+              failed = failed + 1
 
-        for idx in range(self._maxTCPConnsPerFrontend + 1):
-            conns.append(self.openTCPConnection())
+      for conn in conns:
+          conn.close()
 
-        count = 0
-        failed = 0
-        for conn in conns:
-            try:
-                self.sendTCPQueryOverConnection(conn, query)
-                response = self.recvTCPResponseOverConnection(conn)
-                if response:
-                    count = count + 1
-                else:
-                    failed = failed + 1
-            except:
-                failed = failed + 1
+      # wait a bit to be sure that dnsdist closed the connections
+      # and decremented the counters on its side, otherwise subsequent
+      # connections will be dropped
+      time.sleep(1)
 
-        for conn in conns:
-            conn.close()
-
-        # wait a bit to be sure that dnsdist closed the connections
-        # and decremented the counters on its side, otherwise subsequent
-        # connections will be dropped
-        time.sleep(1)
-
-        self.assertEqual(count, self._maxTCPConnsPerFrontend)
-        self.assertEqual(failed, 1)
+      self.assertEqual(count, self._maxTCPConnsPerFrontend)
+      self.assertEqual(failed, 1)

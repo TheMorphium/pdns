@@ -4,7 +4,7 @@ import unittest
 
 class AssertEqualDNSMessageMixin(unittest.TestCase):
     def assertEqualDNSMessage(self, first, second, msg=None):
-        if not first == second:
+        if first != second:
             a = str(first).split('\n')
             b = str(second).split('\n')
 

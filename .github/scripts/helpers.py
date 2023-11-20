@@ -10,8 +10,7 @@ import yaml
 def load_file(filename):
     """Load the entire contents of a file."""
     with open(filename, encoding="utf-8") as file:
-        contents = file.read()
-        return contents
+        return file.read()
 
 
 def get_line_from_offset(file_contents, offset):
@@ -23,8 +22,7 @@ def get_repo_root():
     """Get the git repo's root directory."""
     cwd = os.getcwd()
     repo = git.Repo(cwd, search_parent_directories=True)
-    root = repo.git.rev_parse("--show-toplevel")
-    return root
+    return repo.git.rev_parse("--show-toplevel")
 
 
 def load_fixes_file(filename):

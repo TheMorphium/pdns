@@ -93,40 +93,48 @@ class TestBackendDiscovery(DNSDistTest):
     """
     _verboseMode = True
 
-    def NoSVCCallback(request):
-        return dns.message.make_response(request).to_wire()
+    def NoSVCCallback(self):
+        return dns.message.make_response(self).to_wire()
 
-    def NoUpgradePathCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 no-upgrade. alpn="h3"')
+    def NoUpgradePathCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 no-upgrade. alpn="h3"',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoTCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="dot" port=10652 ipv4hint=127.0.0.1')
+    def UpgradeDoTCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="dot" port=10652 ipv4hint=127.0.0.1',
+        )
         response.answer.append(rrset)
         # add a useless A record for good measure
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.A,
+            '192.0.2.1',
+        )
         response.answer.append(rrset)
         # plus more useless records in authority
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '192.0.2.1')
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.A,
+            '192.0.2.1',
+        )
         response.authority.append(rrset)
         # and finally valid, albeit useless, hints
         rrset = dns.rrset.from_text('tls.tests.dnsdist.org.',
@@ -143,115 +151,129 @@ class TestBackendDiscovery(DNSDistTest):
         response.additional.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoHCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="h2" port=10653 ipv4hint=127.0.0.1 key7="/dns-query{?dns}"')
+    def UpgradeDoHCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="h2" port=10653 ipv4hint=127.0.0.1 key7="/dns-query{?dns}"',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoTDifferentAddr1Callback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="dot" port=10654 ipv4hint=127.0.0.2')
+    def UpgradeDoTDifferentAddr1Callback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="dot" port=10654 ipv4hint=127.0.0.2',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoTDifferentAddr2Callback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="dot" port=10655 ipv4hint=127.0.0.1')
+    def UpgradeDoTDifferentAddr2Callback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="dot" port=10655 ipv4hint=127.0.0.1',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoTUnreachableCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="dot" port=10656 ipv4hint=127.0.0.1')
+    def UpgradeDoTUnreachableCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="dot" port=10656 ipv4hint=127.0.0.1',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def BrokenResponseCallback(request):
-        response = dns.message.make_response(request)
+    def BrokenResponseCallback(self):
+        response = dns.message.make_response(self)
         response.use_edns(edns=False)
         response.question = []
         return response.to_wire()
 
-    def UpgradeDoHMissingPathCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="h2" port=10653 ipv4hint=127.0.0.1')
+    def UpgradeDoHMissingPathCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="h2" port=10653 ipv4hint=127.0.0.1',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def EOFCallback(request):
+    def EOFCallback(self):
         return None
 
-    def ServFailCallback(request):
-        response = dns.message.make_response(request)
+    def ServFailCallback(self):
+        response = dns.message.make_response(self)
         response.set_rcode(dns.rcode.SERVFAIL)
         return response.to_wire()
 
-    def WrongNameCallback(request):
+    def WrongNameCallback(self):
         query = dns.message.make_query('not-the-right-one.', dns.rdatatype.SVCB)
         response = dns.message.make_response(query)
-        response.id = request.id
+        response.id = self.id
         return response.to_wire()
 
-    def WrongIDCallback(request):
-        response = dns.message.make_response(request)
-        response.id = request.id ^ 42
+    def WrongIDCallback(self):
+        response = dns.message.make_response(self)
+        response.id = self.id ^ 42
         return response.to_wire()
 
-    def WrongIDCallback(request):
-        response = dns.message.make_response(request)
-        response.id = request.id ^ 42
+    def WrongIDCallback(self):
+        response = dns.message.make_response(self)
+        response.id = self.id ^ 42
         return response.to_wire()
 
-    def TooManyQuestionsCallback(request):
-        response = dns.message.make_response(request)
+    def TooManyQuestionsCallback(self):
+        response = dns.message.make_response(self)
         response.question.append(response.question[0])
         return response.to_wire()
 
-    def BadQNameCallback(request):
-        response = dns.message.make_response(request)
+    def BadQNameCallback(self):
+        response = dns.message.make_response(self)
         wire = bytearray(response.to_wire())
         # mess up the first label length
         wire[12] = 0xFF
         return wire
 
-    def UpgradeDoTNoPortCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="dot" ipv4hint=127.0.0.1')
+    def UpgradeDoTNoPortCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="dot" ipv4hint=127.0.0.1',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
-    def UpgradeDoHNoPortCallback(request):
-        response = dns.message.make_response(request)
-        rrset = dns.rrset.from_text(request.question[0].name,
-                                    60,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.SVCB,
-                                    '1 tls.tests.dnsdist.org. alpn="h2" ipv4hint=127.0.0.1 key7="/dns-query{?dns}"')
+    def UpgradeDoHNoPortCallback(self):
+        response = dns.message.make_response(self)
+        rrset = dns.rrset.from_text(
+            self.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            '1 tls.tests.dnsdist.org. alpn="h2" ipv4hint=127.0.0.1 key7="/dns-query{?dns}"',
+        )
         response.answer.append(rrset)
         return response.to_wire()
 
@@ -356,7 +378,7 @@ class TestBackendDiscovery(DNSDistTest):
             if line.startswith('#') or line.startswith('All'):
                 continue
             tokens = line.split()
-            self.assertTrue(len(tokens) == 13 or len(tokens) == 14)
+            self.assertTrue(len(tokens) in {13, 14})
             if tokens[1] == '127.0.0.1:10652':
                 # in this particular case, the upgraded backend
                 # does not replace the existing one and thus

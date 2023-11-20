@@ -82,7 +82,9 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         self.assertTrue(serialNumber)
 
         self.generateNewCertificateAndKey()
-        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+        self.sendConsoleCommand(
+            f"generateOCSPResponse('{self._serverCert}', '{self._caCert}', '{self._caKey}', '{self._ocspFile}', 1, 0)"
+        )
         self.sendConsoleCommand("reloadAllCertificates()")
 
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._dohServerPort, self._serverName, self._caCert)
@@ -152,7 +154,9 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         self.assertTrue(serialNumber)
 
         self.generateNewCertificateAndKey()
-        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+        self.sendConsoleCommand(
+            f"generateOCSPResponse('{self._serverCert}', '{self._caCert}', '{self._caKey}', '{self._ocspFile}', 1, 0)"
+        )
         self.sendConsoleCommand("reloadAllCertificates()")
 
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
@@ -223,7 +227,9 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         self.assertTrue(serialNumber)
 
         self.generateNewCertificateAndKey()
-        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+        self.sendConsoleCommand(
+            f"generateOCSPResponse('{self._serverCert}', '{self._caCert}', '{self._caKey}', '{self._ocspFile}', 1, 0)"
+        )
         self.sendConsoleCommand("reloadAllCertificates()")
 
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)

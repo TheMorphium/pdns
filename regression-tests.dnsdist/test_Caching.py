@@ -243,11 +243,13 @@ class TestCaching(DNSDistTest):
         name = 'axfr.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AXFR', 'IN')
         response = dns.message.make_response(query)
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response.answer.append(soa)
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
@@ -280,11 +282,13 @@ class TestCaching(DNSDistTest):
         name = 'ixfr.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'IXFR', 'IN')
         response = dns.message.make_response(query)
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response.answer.append(soa)
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
@@ -318,7 +322,6 @@ class TestCaching(DNSDistTest):
         next request is a miss but the following one a hit.
         """
         ttl = 2
-        misses = 0
         name = 'cacheexpiration.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AAAA', 'IN')
         response = dns.message.make_response(query)
@@ -336,8 +339,7 @@ class TestCaching(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -358,10 +360,7 @@ class TestCaching(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheExpirationDifferentSets(self):
@@ -375,7 +374,6 @@ class TestCaching(DNSDistTest):
         next request is a miss but the following one a hit.
         """
         ttl = 2
-        misses = 0
         name = 'cacheexpirationdifferentsets.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AAAA', 'IN')
         response = dns.message.make_response(query)
@@ -399,8 +397,7 @@ class TestCaching(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -421,10 +418,7 @@ class TestCaching(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheDecreaseTTL(self):
@@ -435,7 +429,6 @@ class TestCaching(DNSDistTest):
         (cache miss) and verify that the cache hits have a decreasing TTL.
         """
         ttl = 600
-        misses = 0
         name = 'cachedecreasettl.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AAAA', 'IN')
         response = dns.message.make_response(query)
@@ -453,8 +446,7 @@ class TestCaching(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -470,10 +462,7 @@ class TestCaching(DNSDistTest):
         for an in receivedResponse.answer:
             self.assertTrue(an.ttl < ttl)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheDifferentCase(self):
@@ -525,7 +514,7 @@ class TestCaching(DNSDistTest):
         content = ""
         for i in range(44):
             if len(content) > 0:
-                content = content + ', '
+                content = f'{content}, '
             content = content + (str(i)*50)
         # pad up to 4096
         content = content + 'A'*42
@@ -983,7 +972,6 @@ class TestCachingWithExistingEDNS(DNSDistTest):
         (cache miss) and verify that the same one with a different EDNS UDP
         Payload size is not served from the cache.
         """
-        misses = 0
         name = 'cachedifferentedns.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512)
         response = dns.message.make_response(query)
@@ -1000,8 +988,7 @@ class TestCachingWithExistingEDNS(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name,
@@ -1019,10 +1006,7 @@ class TestCachingWithExistingEDNS(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingCacheFull(DNSDistTest):
@@ -1037,7 +1021,6 @@ class TestCachingCacheFull(DNSDistTest):
         Cache: No new entries are cached when the cache is full
 
         """
-        misses = 0
         name = 'cachenotfullyet.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -1055,8 +1038,7 @@ class TestCachingCacheFull(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1090,10 +1072,7 @@ class TestCachingCacheFull(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingNoStale(DNSDistTest):
@@ -1165,7 +1144,6 @@ class TestCachingStale(DNSDistTest):
         Cache: Cache entry, set backend down, get stale entry
 
         """
-        misses = 0
         ttl = 2
         name = 'stale.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1184,8 +1162,7 @@ class TestCachingStale(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1201,10 +1178,7 @@ class TestCachingStale(DNSDistTest):
         for an in receivedResponse.answer:
             self.assertEqual(an.ttl, self._staleCacheTTL)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingStaleExpunged(DNSDistTest):
@@ -1229,7 +1203,6 @@ class TestCachingStaleExpunged(DNSDistTest):
         """
         Cache: Cache entry, set backend down, wait for the cache cleaning to run and remove the entry, get no entry
         """
-        misses = 0
         drops = 0
         ttl = 2
         name = 'stale-but-expunged.cache.tests.powerdns.com.'
@@ -1249,7 +1222,7 @@ class TestCachingStaleExpunged(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
+        misses = 0 + 1
         self.assertEqual(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), misses + drops)
 
         # next queries should hit the cache
@@ -1276,10 +1249,7 @@ class TestCachingStaleExpunged(DNSDistTest):
         self.assertEqual(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), misses + drops)
         self.assertEqual(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"hits\"]").strip("\n")), 1)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingStaleExpungePrevented(DNSDistTest):
@@ -1303,7 +1273,6 @@ class TestCachingStaleExpungePrevented(DNSDistTest):
         """
         Cache: Cache entry, set backend down, wait for the cache cleaning to run and remove the entry, still get a cache HIT because the stale entry was not removed
         """
-        misses = 0
         ttl = 2
         name = 'stale-not-expunged.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1322,7 +1291,7 @@ class TestCachingStaleExpungePrevented(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
+        misses = 0 + 1
         self.assertEqual(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), 1)
 
         # next queries should hit the cache
@@ -1349,10 +1318,7 @@ class TestCachingStaleExpungePrevented(DNSDistTest):
         self.assertEqual(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"misses\"]").strip("\n")), 1)
         self.assertEqual(int(self.sendConsoleCommand("getPool(\"\"):getCache():getStats()[\"hits\"]").strip("\n")), 2)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCacheManagement(DNSDistTest):
@@ -1372,7 +1338,6 @@ class TestCacheManagement(DNSDistTest):
         Cache: Expunge
 
         """
-        misses = 0
         ttl = 600
         name = 'expunge.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1391,8 +1356,7 @@ class TestCacheManagement(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1413,10 +1377,7 @@ class TestCacheManagement(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheExpungeByName(self):
@@ -1424,7 +1385,6 @@ class TestCacheManagement(DNSDistTest):
         Cache: Expunge by name
 
         """
-        misses = 0
         ttl = 600
         name = 'expungebyname.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1453,8 +1413,7 @@ class TestCacheManagement(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1495,10 +1454,7 @@ class TestCacheManagement(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response2)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheExpungeByNameAndType(self):
@@ -1506,7 +1462,6 @@ class TestCacheManagement(DNSDistTest):
         Cache: Expunge by name and type
 
         """
-        misses = 0
         ttl = 600
         name = 'expungebynameandtype.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1534,8 +1489,7 @@ class TestCacheManagement(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1576,9 +1530,7 @@ class TestCacheManagement(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response2)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheExpungeByNameAndSuffix(self):
@@ -1586,7 +1538,6 @@ class TestCacheManagement(DNSDistTest):
         Cache: Expunge by name
 
         """
-        misses = 0
         ttl = 600
         name = 'expungebyname.suffix.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1615,8 +1566,7 @@ class TestCacheManagement(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1657,10 +1607,7 @@ class TestCacheManagement(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response2)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheExpungeByNameAndTypeAndSuffix(self):
@@ -1668,7 +1615,6 @@ class TestCacheManagement(DNSDistTest):
         Cache: Expunge by name and type
 
         """
-        misses = 0
         ttl = 600
         name = 'expungebynameandtype.suffixtype.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1696,8 +1642,7 @@ class TestCacheManagement(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1738,9 +1683,7 @@ class TestCacheManagement(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response2)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingTTL(DNSDistTest):
@@ -1758,7 +1701,6 @@ class TestCachingTTL(DNSDistTest):
         Cache: Entries with a TTL shorter than minTTL
 
         """
-        misses = 0
         ttl = 60
         name = 'ttltooshort.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1779,8 +1721,7 @@ class TestCachingTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         for an in receivedResponse.answer:
             self.assertEqual(an.ttl, ttl)
-        misses += 1
-
+        misses = 0 + 1
         # We should not have been cached
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedQuery)
@@ -1792,10 +1733,7 @@ class TestCachingTTL(DNSDistTest):
             self.assertEqual(an.ttl, ttl)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheNXWithNoRR(self):
@@ -1803,7 +1741,6 @@ class TestCachingTTL(DNSDistTest):
         Cache: NX with no RR
 
         """
-        misses = 0
         name = 'nxwithnorr.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -1816,8 +1753,7 @@ class TestCachingTTL(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # We should not have been cached
         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedQuery)
@@ -1827,10 +1763,7 @@ class TestCachingTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingLongTTL(DNSDistTest):
@@ -1847,7 +1780,6 @@ class TestCachingLongTTL(DNSDistTest):
         Cache: Entries with a longer TTL than the maximum
 
         """
-        misses = 0
         ttl = 172800
         name = 'longttl.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -1868,8 +1800,7 @@ class TestCachingLongTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         for an in receivedResponse.answer:
             self.assertEqual(an.ttl, ttl)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1890,10 +1821,7 @@ class TestCachingLongTTL(DNSDistTest):
             self.assertEqual(an.ttl, ttl)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingFailureTTL(DNSDistTest):
@@ -1910,7 +1838,6 @@ class TestCachingFailureTTL(DNSDistTest):
         Cache: ServFail TTL
 
         """
-        misses = 0
         name = 'servfail.failure.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -1923,8 +1850,7 @@ class TestCachingFailureTTL(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1941,10 +1867,7 @@ class TestCachingFailureTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheRefusedTTL(self):
@@ -1952,7 +1875,6 @@ class TestCachingFailureTTL(DNSDistTest):
         Cache: Refused TTL
 
         """
-        misses = 0
         name = 'refused.failure.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -1965,8 +1887,7 @@ class TestCachingFailureTTL(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -1983,10 +1904,7 @@ class TestCachingFailureTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheHeaderOnlyRefusedTTL(self):
@@ -1994,7 +1912,6 @@ class TestCachingFailureTTL(DNSDistTest):
         Cache: Header-Only Refused TTL
 
         """
-        misses = 0
         name = 'header-only-refused.failure.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -2008,8 +1925,7 @@ class TestCachingFailureTTL(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -2026,10 +1942,7 @@ class TestCachingFailureTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingNegativeTTL(DNSDistTest):
@@ -2047,16 +1960,17 @@ class TestCachingNegativeTTL(DNSDistTest):
         Cache: Negative TTL on NXDOMAIN
 
         """
-        misses = 0
         name = 'nxdomain.negativettl.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         response.set_rcode(dns.rcode.NXDOMAIN)
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response.authority.append(soa)
 
         # Miss
@@ -2066,8 +1980,7 @@ class TestCachingNegativeTTL(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -2084,10 +1997,7 @@ class TestCachingNegativeTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
     def testCacheNegativeTTLNoData(self):
@@ -2095,16 +2005,17 @@ class TestCachingNegativeTTL(DNSDistTest):
         Cache: Negative TTL on NoData
 
         """
-        misses = 0
         name = 'nodata.negativettl.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
         response.set_rcode(dns.rcode.NOERROR)
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+        )
         response.authority.append(soa)
 
         # Miss
@@ -2114,8 +2025,7 @@ class TestCachingNegativeTTL(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -2132,10 +2042,7 @@ class TestCachingNegativeTTL(DNSDistTest):
         self.assertEqual(response, receivedResponse)
         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingDontAge(DNSDistTest):
@@ -2154,7 +2061,6 @@ class TestCachingDontAge(DNSDistTest):
         hits don't have a decreasing TTL.
         """
         ttl = 600
-        misses = 0
         name = 'cachedoesntdecreasettl.cache-dont-age.tests.powerdns.com.'
         query = dns.message.make_query(name, 'AAAA', 'IN')
         response = dns.message.make_response(query)
@@ -2172,8 +2078,7 @@ class TestCachingDontAge(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
-        misses += 1
-
+        misses = 0 + 1
         # next queries should hit the cache
         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
@@ -2189,10 +2094,7 @@ class TestCachingDontAge(DNSDistTest):
         for an in receivedResponse.answer:
             self.assertTrue(an.ttl == ttl)
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
-
+        total = sum(self._responsesCounter[key] for key in self._responsesCounter)
         self.assertEqual(total, misses)
 
 class TestCachingECSWithoutPoolECS(DNSDistTest):

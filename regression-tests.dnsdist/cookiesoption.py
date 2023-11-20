@@ -35,7 +35,7 @@ class CookiesOption(dns.edns.Option):
         else:
             return data
 
-    def from_wire(cls, otype, wire, current, olen):
+    def from_wire(self, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-ietf-dnsop-cookies-09.
 
         Returns:
@@ -47,12 +47,8 @@ class CookiesOption(dns.edns.Option):
             raise Exception('Invalid EDNS Cookies option')
 
         client = data[:8]
-        if len(data) > 8:
-            server = data[8:]
-        else:
-            server = None
-
-        return cls(client, server)
+        server = data[8:] if len(data) > 8 else None
+        return self(client, server)
 
     from_wire = classmethod(from_wire)
 
@@ -65,19 +61,11 @@ class CookiesOption(dns.edns.Option):
             raise Exception('Invalid EDNS Cookies option')
 
         client = data[:8]
-        if len(data) > 8:
-            server = data[8:]
-        else:
-            server = None
-
+        server = data[8:] if len(data) > 8 else None
         return cls(client, server)
 
     def __repr__(self):
-        return '%s(%s, %s)' % (
-            self.__class__.__name__,
-            self.client,
-            self.server
-        )
+        return f'{self.__class__.__name__}({self.client}, {self.server})'
 
     def to_text(self):
         return self.__repr__()
@@ -85,11 +73,7 @@ class CookiesOption(dns.edns.Option):
     def __eq__(self, other):
         if not isinstance(other, CookiesOption):
             return False
-        if self.client != other.client:
-            return False
-        if self.server != other.server:
-            return False
-        return True
+        return False if self.client != other.client else self.server == other.server
 
     def __ne__(self, other):
         return not self.__eq__(other)

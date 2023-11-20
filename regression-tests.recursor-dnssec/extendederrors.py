@@ -27,7 +27,7 @@ class ExtendedErrorOption(dns.edns.Option):
         else:
             return data
 
-    def from_wire(cls, otype, wire, current, olen):
+    def from_wire(self, otype, wire, current, olen):
         """Read EDNS packet.
 
         Returns:
@@ -38,12 +38,8 @@ class ExtendedErrorOption(dns.edns.Option):
             raise Exception('Invalid EDNS Extended Error option')
 
         (code,) = struct.unpack('!H', wire[current:current+2])
-        if olen > 2:
-            extra = wire[current + 2:current + olen]
-        else:
-            extra = b''
-
-        return cls(code, extra)
+        extra = wire[current + 2:current + olen] if olen > 2 else b''
+        return self(code, extra)
 
     from_wire = classmethod(from_wire)
 
@@ -55,12 +51,8 @@ class ExtendedErrorOption(dns.edns.Option):
         if len(data) < 2:
             raise Exception('Invalid EDNS Extended Error option')
 
-        (code,) = struct.unpack('!H', data[0:2])
-        if len(data) > 2:
-            extra = data[2:]
-        else:
-            extra = b''
-
+        (code,) = struct.unpack('!H', data[:2])
+        extra = data[2:] if len(data) > 2 else b''
         return cls(code, extra)
 
     def __repr__(self):
@@ -76,11 +68,7 @@ class ExtendedErrorOption(dns.edns.Option):
     def __eq__(self, other):
         if not isinstance(other, ExtendedErrorOption):
             return False
-        if self.code != other.code:
-            return False
-        if self.extra != other.extra:
-            return False
-        return True
+        return False if self.code != other.code else self.extra == other.extra
 
     def __ne__(self, other):
         return not self.__eq__(other)

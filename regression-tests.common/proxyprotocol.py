@@ -53,8 +53,8 @@ class ProxyProtocol(object):
 
         self.contentLen = struct.unpack("!H", data[14:16])[0]
 
-        if not self.local:
-            if self.contentLen < (self.addrSize * 2 + self.PORT_SIZE * 2):
+        if self.contentLen < (self.addrSize * 2 + self.PORT_SIZE * 2):
+            if not self.local:
                 return False
 
         return True
@@ -129,11 +129,7 @@ class ProxyProtocol(object):
         payload = copy.deepcopy(cls.MAGIC)
         version = 0x02
 
-        if local:
-            command = 0x00
-        else:
-            command = 0x01
-
+        command = 0x00 if local else 0x01
         value = struct.pack('!B', (version << 4) + command)
         payload = payload + value
 
@@ -141,10 +137,7 @@ class ProxyProtocol(object):
         family = 0x00
         protocol = 0x00
         if not local:
-            if tcp:
-                protocol = 0x01
-            else:
-                protocol = 0x02
+            protocol = 0x01 if tcp else 0x02
             # sorry but compatibility with python 2 is awful for this,
             # not going to waste time on it
             if not v6:
@@ -165,17 +158,13 @@ class ProxyProtocol(object):
         for value in values:
             valuesSize = valuesSize + 3 + len(value[1])
 
-        contentSize = contentSize + valuesSize
+        contentSize += valuesSize
 
         value = struct.pack('!H', contentSize)
         payload = payload +  value
 
         if not local:
-            if family == 0x01:
-                af = socket.AF_INET
-            else:
-                af = socket.AF_INET6
-
+            af = socket.AF_INET if family == 0x01 else socket.AF_INET6
             value = socket.inet_pton(af, source)
             payload = payload + value
             value = socket.inet_pton(af, destination)

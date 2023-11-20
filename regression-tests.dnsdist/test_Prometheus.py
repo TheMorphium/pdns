@@ -87,13 +87,15 @@ class TestPrometheus(DNSDistTest):
         for line in output[0].splitlines():
             if line.endswith(b"should have \"_total\" suffix"):
                 continue
-            raise AssertionError('%s returned an unexpected output. Faulty line is "%s", complete content is "%s"' % (testcmd, line, output))
+            raise AssertionError(
+                f'{testcmd} returned an unexpected output. Faulty line is "{line}", complete content is "{output}"'
+            )
 
     def testMetrics(self):
         """
         Prometheus: Retrieve metrics
         """
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/metrics'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/metrics'
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)

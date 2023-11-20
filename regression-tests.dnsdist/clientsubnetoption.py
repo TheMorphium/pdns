@@ -86,7 +86,7 @@ class ClientSubnetOption(dns.edns.Option):
                 pass
 
         if n is None:
-            raise Exception("%s is an invalid ip" % ip)
+            raise Exception(f"{ip} is an invalid ip")
 
         self.family = f
         self.ip = ip
@@ -148,7 +148,7 @@ class ClientSubnetOption(dns.edns.Option):
         else:
             return data
 
-    def from_wire(cls, otype, wire, current, olen):
+    def from_wire(self, otype, wire, current, olen):
         """Read EDNS packet as defined in draft-vandergaast-edns-client-subnet-01.
 
         Returns:
@@ -173,7 +173,7 @@ class ClientSubnetOption(dns.edns.Option):
         else:
             raise Exception("Returned a family other then IPv4 or IPv6")
 
-        return cls(ip, mask, scope, otype)
+        return self(ip, mask, scope, otype)
 
     from_wire = classmethod(from_wire)
 
@@ -203,12 +203,7 @@ class ClientSubnetOption(dns.edns.Option):
                                               self.ip >> 64,
                                               self.ip & (2 ** 64 - 1)))
 
-        return "%s(%s, %s, %s)" % (
-            self.__class__.__name__,
-            ip,
-            self.mask,
-            self.scope
-        )
+        return f"{self.__class__.__name__}({ip}, {self.mask}, {self.scope})"
 
     def to_text(self):
         return self.__repr__()
@@ -229,11 +224,7 @@ class ClientSubnetOption(dns.edns.Option):
             return False
         if self.calculate_ip() != other.calculate_ip():
             return False
-        if self.mask != other.mask:
-            return False
-        if self.family != other.family:
-            return False
-        return True
+        return False if self.mask != other.mask else self.family == other.family
 
     def __ne__(self, other):
         """Rich comparison method for inequality.
@@ -278,16 +269,16 @@ if __name__ == "__main__":
             if isinstance(options, ClientSubnetOption):
                 found = True
                 print("Found ClientSubnetOption...", end=None, file=sys.stderr)
-                if not cso.family == options.family:
+                if cso.family != options.family:
                     error = True
                     print("\nFailed: returned family (%d) is different from the passed family (%d)" % (options.family, cso.family), file=sys.stderr)
-                if not cso.calculate_ip() == options.calculate_ip():
+                if cso.calculate_ip() != options.calculate_ip():
                     error = True
                     print("\nFailed: returned ip (%s) is different from the passed ip (%s)." % (options.calculate_ip(), cso.calculate_ip()), file=sys.stderr)
-                if not options.mask == cso.mask:
+                if options.mask != cso.mask:
                     error = True
                     print("\nFailed: returned mask bits (%d) is different from the passed mask bits (%d)" % (options.mask, cso.mask), file=sys.stderr)
-                if not options.scope != 0:
+                if options.scope == 0:
                     print("\nWarning: scope indicates edns-clientsubnet data is not used", file=sys.stderr)
                 if options.is_draft():
                     print("\nWarning: detected support for edns-clientsubnet draft code", file=sys.stderr)

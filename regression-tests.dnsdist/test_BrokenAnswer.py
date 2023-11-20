@@ -8,8 +8,9 @@ def responseCallback(request):
     if len(request.question) != 1:
         print("Skipping query with question count %d" % (len(request.question)))
         return None
-    healthCheck = str(request.question[0].name).endswith('a.root-servers.net.')
-    if healthCheck:
+    if healthCheck := str(request.question[0].name).endswith(
+        'a.root-servers.net.'
+    ):
         response = dns.message.make_response(request)
         return response.to_wire()
     # now we create a broken response
@@ -25,8 +26,7 @@ def responseCallback(request):
     raw = response.to_wire()
     # first label length of this rrset is at 12 (dnsheader) + length(qname) + 2 (leading label length + trailing 0) + 2 (qtype) + 2 (qclass)
     offset = 12 + len(str(request.question[0].name)) + 2 + 2 + 2
-    altered = raw[:offset] + b'\xff' + raw[offset+1:]
-    return altered
+    return raw[:offset] + b'\xff' + raw[offset+1:]
 
 class TestBrokenAnswerECS(DNSDistTest):
 

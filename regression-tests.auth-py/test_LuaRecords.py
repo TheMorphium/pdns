@@ -1008,7 +1008,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
 
         sender = self.sendTCPQuery if tcp else self.sendUDPQuery
 
-        for i in range(50):
+        for _ in range(50):
             res = sender(query)
             responses.append(res.answer[0][0])
 

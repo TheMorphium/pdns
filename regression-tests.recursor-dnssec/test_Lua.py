@@ -180,9 +180,20 @@ class GettagRecursorTest(RecursorTest):
         ecso = clientsubnetoption.ClientSubnetOption(subnet, subnetMask)
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-1', 'edns-subnet-' + subnet + '/' + str(subnetMask),
-                                                                         'ednsoption-8-count-1', 'ednsoption-8-total-len-8']),
-            ]
+            dns.rrset.from_text_list(
+                name,
+                0,
+                dns.rdataclass.IN,
+                'TXT',
+                [
+                    name,
+                    'gettag-qtype-1',
+                    f'edns-subnet-{subnet}/{subnetMask}',
+                    'ednsoption-8-count-1',
+                    'ednsoption-8-total-len-8',
+                ],
+            ),
+        ]
         query = dns.message.make_query(name, 'A', want_dnssec=True, options=[ecso])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
@@ -198,11 +209,22 @@ class GettagRecursorTest(RecursorTest):
 
         expected = [
             dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.1'),
-            dns.rrset.from_text_list(name, 0, dns.rdataclass.IN, 'TXT', [name, 'gettag-qtype-1', 'edns-subnet-' + subnet + '/' + str(subnetMask),
-                                                                         'ednsoption-10-count-2', 'ednsoption-10-total-len-32',
-                                                                         'ednsoption-8-count-1', 'ednsoption-8-total-len-8'
-                                                                        ]),
-            ]
+            dns.rrset.from_text_list(
+                name,
+                0,
+                dns.rdataclass.IN,
+                'TXT',
+                [
+                    name,
+                    'gettag-qtype-1',
+                    f'edns-subnet-{subnet}/{subnetMask}',
+                    'ednsoption-10-count-2',
+                    'ednsoption-10-total-len-32',
+                    'ednsoption-8-count-1',
+                    'ednsoption-8-total-len-8',
+                ],
+            ),
+        ]
         query = dns.message.make_query(name, 'A', want_dnssec=True, options=[eco1,ecso,eco2])
         query.flags |= dns.flags.CD
         res = self.sendUDPQuery(query)
@@ -341,10 +363,10 @@ quiet=no
         global hooksReactorRunning
         print("Launching responders..")
 
-        address = cls._PREFIX + '.23'
-        port = 53
-
+        address = f'{cls._PREFIX}.23'
         if not hooksReactorRunning:
+            port = 53
+
             reactor.listenUDP(port, UDPHooksResponder(), interface=address)
             hooksReactorRunning = True
 
@@ -587,10 +609,8 @@ class PDNSRandomTest(RecursorTest):
     def testRandom(self):
         query = dns.message.make_query('whatever.example.', 'TXT')
 
-        ans = set()
-
         ret = self.sendUDPQuery(query)
-        ans.add(ret.answer[0][0])
+        ans = {ret.answer[0][0]}
         ret = self.sendUDPQuery(query)
         ans.add(ret.answer[0][0])
 

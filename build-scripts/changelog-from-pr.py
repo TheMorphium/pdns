@@ -22,7 +22,7 @@ ticket_regex = re.compile(r'(?:[Cc]loses|[Ff]ixes)? #(\d+)')
 out = ''
 httpAuth = None
 if arguments.username:
-    password = getpass.getpass("GitHub password for '" + arguments.username + "': ")
+    password = getpass.getpass(f"GitHub password for '{arguments.username}': ")
     httpAuth = requests.auth.HTTPBasicAuth(arguments.username, password)
 
 # https://github.com/settings/tokens
@@ -34,12 +34,15 @@ for pr in arguments.pullrequest:
         pr = pr[1:]
     try:
         if access_token:
-            res = requests.get('https://api.github.com/repos/PowerDNS/pdns/pulls/'
-                               '{}'.format(pr),
-                               headers={'Authorization': 'token ' + access_token})
+            res = requests.get(
+                f'https://api.github.com/repos/PowerDNS/pdns/pulls/{pr}',
+                headers={'Authorization': f'token {access_token}'},
+            )
         else:
-            res = requests.get('https://api.github.com/repos/PowerDNS/pdns/pulls/'
-                               '{}'.format(pr), auth=httpAuth)
+            res = requests.get(
+                f'https://api.github.com/repos/PowerDNS/pdns/pulls/{pr}',
+                auth=httpAuth,
+            )
         pr_info = res.json()
     except (requests.exceptions.HTTPError, ValueError) as e:
         print(e)
@@ -50,19 +53,19 @@ for pr in arguments.pullrequest:
             pr=pr, url=pr_info['html_url'], title=pr_info['title']
         )
     else:
-        out += '  .. change::\n' + \
-               '    :tags: XXXXXX\n' + \
-               '    :pullreq: {}\n'.format(pr)
+        out += (
+            '  .. change::\n' + '    :tags: XXXXXX\n' + f'    :pullreq: {pr}\n'
+        )
         body = pr_info.get('body', None)
         if pr_info.get('message', None) and not body:
             # A bit blunt but better than we had.
-            print('{}'.format(pr_info['message']))
+            print(f"{pr_info['message']}")
             sys.exit(1)
         elif body:
             tickets = re.findall(ticket_regex, body)
             if len(tickets):
-                out += '    :tickets: {}\n'.format(', '.join(tickets))
-        out += '\n    {}'.format(pr_info['title'][0].capitalize() + pr_info['title'][1:])
+                out += f"    :tickets: {', '.join(tickets)}\n"
+        out += f"\n    {pr_info['title'][0].capitalize() + pr_info['title'][1:]}"
 
     if pr_info['user']['login'].lower() not in ['ahupowerdns', 'habbie',
                                                 'pieterlexis', 'rgacogne',
@@ -70,17 +73,19 @@ for pr in arguments.pullrequest:
                                                 'omoerbeek', 'fredmorcos']:
         try:
             if access_token:
-                user_info = requests.get(pr_info['user']['url'],
-                                         headers={'Authorization': 'token ' + access_token}).json()
+                user_info = requests.get(
+                    pr_info['user']['url'],
+                    headers={'Authorization': f'token {access_token}'},
+                ).json()
             else:
                 user_info = requests.get(pr_info['user']['url'], auth=httpAuth).json()
         except (requests.exceptions.HTTPError, ValueError) as e:
             print(e)
             sys.exit(1)
         if 'name' in user_info:
-            out += ' ({})'.format(user_info['name'])
+            out += f" ({user_info['name']})"
         else:
-            out += ' (@{})'.format(user_info['login'])
+            out += f" (@{user_info['login']})"
     out += '\n'
 
     if not arguments.oneline:

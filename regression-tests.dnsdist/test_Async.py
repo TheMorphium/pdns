@@ -19,7 +19,7 @@ def AsyncResponder(listenPath, responsePath):
     try:
         sock.bind(listenPath)
     except socket.error as e:
-        print("Error binding in the Asynchronous responder: %s" % str(e))
+        print(f"Error binding in the Asynchronous responder: {str(e)}")
         sys.exit(1)
 
     while True:
@@ -29,25 +29,16 @@ def AsyncResponder(listenPath, responsePath):
             break
 
         request = dns.message.from_wire(data)
-        reply = str(request.id) + ' '
+        reply = f'{str(request.id)} '
         if str(request.question[0].name).startswith('accept-then-refuse'):
-            if request.flags & dns.flags.QR:
-                reply = reply + 'refuse'
-            else:
-                reply = reply + 'accept'
+            reply = f'{reply}refuse' if request.flags & dns.flags.QR else f'{reply}accept'
         elif str(request.question[0].name).startswith('accept-then-drop'):
-            if request.flags & dns.flags.QR:
-                reply = reply + 'drop'
-            else:
-                reply = reply + 'accept'
+            reply = f'{reply}drop' if request.flags & dns.flags.QR else f'{reply}accept'
         elif str(request.question[0].name).startswith('accept-then-custom'):
-            if request.flags & dns.flags.QR:
-                reply = reply + 'custom'
-            else:
-                reply = reply + 'accept'
+            reply = f'{reply}custom' if request.flags & dns.flags.QR else f'{reply}accept'
         elif str(request.question[0].name).startswith('timeout-then-accept'):
             if request.flags & dns.flags.QR:
-                reply = reply + 'accept'
+                reply = f'{reply}accept'
             else:
                 # no response
                 continue
@@ -56,20 +47,20 @@ def AsyncResponder(listenPath, responsePath):
                 # no response
                 continue
             else:
-                reply = reply + 'accept'
+                reply = f'{reply}accept'
         elif str(request.question[0].name).startswith('accept'):
-            reply = reply + 'accept'
+            reply = f'{reply}accept'
         elif str(request.question[0].name).startswith('refuse'):
-            reply = reply + 'refuse'
+            reply = f'{reply}refuse'
         elif str(request.question[0].name).startswith('drop'):
-            reply = reply + 'drop'
+            reply = f'{reply}drop'
         elif str(request.question[0].name).startswith('custom'):
-            reply = reply + 'custom'
+            reply = f'{reply}custom'
         elif str(request.question[0].name).startswith('timeout'):
             # no response
             continue
         else:
-            reply = reply + 'invalid'
+            reply = f'{reply}invalid'
 
         remote = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         remote.connect(responsePath)

@@ -68,21 +68,18 @@ def init_argparser():
 
 # Release File Functions
 
-def write_dockerfile (os, os_version, release):
-    tpl = g_env.get_template('Dockerfile-{}.jinja2'.format(os))
+def write_dockerfile(os, os_version, release):
+    tpl = g_env.get_template(f'Dockerfile-{os}.jinja2')
 
-    if os == 'raspbian':
-        os_image = 'resin/rpi-raspbian'
-    elif os == 'el':
+    if os == 'el':
         os_image = 'oraclelinux'
+    elif os == 'raspbian':
+        os_image = 'resin/rpi-raspbian'
     else:
         os_image = os
 
     if release.startswith('auth-'):
-        if os in ('centos', 'el'):
-            pkg = 'pdns'
-        else:
-            pkg = 'pdns-server'
+        pkg = 'pdns' if os in ('centos', 'el') else 'pdns-server'
         cmd = 'pdns_server'
     elif release.startswith('rec-'):
         pkg = 'pdns-recursor'
@@ -91,40 +88,33 @@ def write_dockerfile (os, os_version, release):
         pkg = 'dnsdist'
         cmd = 'dnsdist'
 
-    f = open('{}{}.{}-{}'.format(g_dockerfile, release, os, os_version), 'w')
-
-    # This comment was in the template for the `--nobest` part but that makes
-    # the template look even more different than the final output, so:
-    #
-    # > When should the logic be in the code and when in the template? :shrug:
-    # > I prefer it to be in the code but I also do not want to add extra vars
-    # > and logic to the code unless necessary.
-    f.write(tpl.render({ "os": os,
-                         "os_image": os_image,
-                         "os_version": os_version,
-                         "release": release,
-                         "cmd": cmd,
-                         "pkg": pkg }))
-    f.close()
+    with open(f'{g_dockerfile}{release}.{os}-{os_version}', 'w') as f:
+        # This comment was in the template for the `--nobest` part but that makes
+        # the template look even more different than the final output, so:
+        #
+        # > When should the logic be in the code and when in the template? :shrug:
+        # > I prefer it to be in the code but I also do not want to add extra vars
+        # > and logic to the code unless necessary.
+        f.write(tpl.render({ "os": os,
+                             "os_image": os_image,
+                             "os_version": os_version,
+                             "release": release,
+                             "cmd": cmd,
+                             "pkg": pkg }))
 
 
-def write_list_file (os, os_version, release):
+def write_list_file(os, os_version, release):
     tpl = g_env.get_template('pdns-list.jinja2')
 
-    if os in ['debian', 'ubuntu']:
-        arch = ' [arch=amd64] '
-    else:
-        arch = ' '
-
-    f = open('pdns.list.{}.{}-{}'.format(release, os, os_version), 'w')
-    f.write(tpl.render({ "os": os,
-                         "os_version": os_version,
-                         "release": release,
-                         "arch": arch }))
-    f.close()
+    arch = ' [arch=amd64] ' if os in ['debian', 'ubuntu'] else ' '
+    with open(f'pdns.list.{release}.{os}-{os_version}', 'w') as f:
+        f.write(tpl.render({ "os": os,
+                             "os_version": os_version,
+                             "release": release,
+                             "arch": arch }))
 
 
-def write_pkg_pin_file (release):
+def write_pkg_pin_file(release):
     tpl = g_env.get_template('pkg-pin.jinja2')
 
     if release.startswith('auth-') or  release.startswith('rec-'):
@@ -132,9 +122,8 @@ def write_pkg_pin_file (release):
     elif release.startswith('dnsdist-'):
         pkg = 'dnsdist'
 
-    f = open('pkg-pin', 'w')
-    f.write(tpl.render({ "pkg": pkg }))
-    f.close()
+    with open('pkg-pin', 'w') as f:
+        f.write(tpl.render({ "pkg": pkg }))
 
 
 def write_release_files (release):
@@ -188,31 +177,28 @@ def write_release_files (release):
 
 # Test Release Functions
 
-def build (dockerfile):
+def build(dockerfile):
     # Maybe create `determine_tag` function.
     if len(str(dockerfile)) <= len(g_dockerfile):
-        print('Unable to determine tag for {}'.format(dockerfile))
+        print(f'Unable to determine tag for {dockerfile}')
         return (None, None)
     tag = str(dockerfile)[len(g_dockerfile):]
-    print('Building Docker image using {}...'.format(dockerfile))
+    print(f'Building Docker image using {dockerfile}...')
     if g_verbose:
-        print('  - tag = {}'.format(tag))
+        print(f'  - tag = {tag}')
     cp = subprocess.run(['docker', 'build', '--no-cache', '--pull', '--file',
                          dockerfile, '--tag', tag, '.'],
                         capture_output=not(g_verbose))
     # FIXME write failed output to log
     if cp.returncode != 0:
-        print('Error building {}: {}'.format(tag, repr(cp.returncode)))
+        print(f'Error building {tag}: {repr(cp.returncode)}')
         return ( tag, cp.returncode )
     return ( tag, cp.returncode )
 
 
-def run (tag):
-    if g_run_output:
-        capture_run_output = False
-    else:
-        capture_run_output = not(g_verbose)
-    print('Running Docker container tagged {}...'.format(tag))
+def run(tag):
+    capture_run_output = False if g_run_output else not(g_verbose)
+    print(f'Running Docker container tagged {tag}...')
     cp = subprocess.run(['docker', 'run', tag],
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     version = re.search('(PowerDNS Authoritative Server|PowerDNS Recursor|' +
@@ -221,9 +207,9 @@ def run (tag):
     if g_verbose:
         print(cp.stdout.decode())
     # for some reason 99 is returned on  `cmd --version` :shrug:
-    if cp.returncode != 0 and cp.returncode != 99:
+    if cp.returncode not in [0, 99]:
         # FIXME write failed output to log
-        print('Error running {}: {}'.format(tag, repr(cp.returncode)))
+        print(f'Error running {tag}: {repr(cp.returncode)}')
         return cp.returncode
     if version and version.group(2):
         return cp.returncode, version.group(2)
@@ -231,56 +217,55 @@ def run (tag):
         return cp.returncode, None
 
 
-def collect_dockerfiles (release):
+def collect_dockerfiles(release):
     if g_verbose:
-        print('Collecting release files for {}...'.format(release))
+        print(f'Collecting release files for {release}...')
     p = Path('.')
-    files = list(p.glob('{}{}.*'.format(g_dockerfile, release)))
+    files = list(p.glob(f'{g_dockerfile}{release}.*'))
     if g_verbose:
         for file in files:
-            print('  - {}'.format(file))
+            print(f'  - {file}')
     return files
 
 
-def test_release (release):
+def test_release(release):
     # sorted because we want determinism
     dockerfiles = sorted(collect_dockerfiles(release))
     failed_builds = []
     failed_runs = []
     returned_versions = []
-    print('=== testing {} ==='.format(release))
+    print(f'=== testing {release} ===')
     for df in dockerfiles:
         if g_verbose:
-            print('--- {} ---'.format(df))
+            print(f'--- {df} ---')
         (tag, returncode) = build(df)
         if returncode != 0:
-            print('Skipping running {} due to build error: {}'
-                  .format(df, returncode))
+            print(f'Skipping running {df} due to build error: {returncode}')
             failed_builds.append((str(df), returncode))
         elif tag is None:
-            print('Skipping running {} due to undetermined tag.'.format(df))
+            print(f'Skipping running {df} due to undetermined tag.')
             failed_builds.append((str(df), returncode))
         else:
             (returncode, return_version) = run(tag)
             # for some reason 99 is returned on `cmd --version` :shrug:
             # (not sure if this is true since using `stdout=PIPE...`)
-            if returncode != 0 and returncode != 99:
+            if returncode not in [0, 99]:
                 failed_runs.append((tag, returncode))
             if return_version:
                 returned_versions.append((tag, return_version))
     print('Test done.')
-    if len(failed_builds) > 0:
+    if failed_builds:
         print('- failed builds:')
         for fb in failed_builds:
-            print('    - {}'.format(fb))
-    if len(failed_runs) > 0:
+            print(f'    - {fb}')
+    if failed_runs:
         print('- failed runs:')
         for fr in failed_runs:
-            print('    - {}'.format(fr))
-    if len(returned_versions) > 0:
+            print(f'    - {fr}')
+    if returned_versions:
         print('- returned versions:')
         for rv in returned_versions:
-            print('    - {}: {}'.format(rv[0], rv[1]))
+            print(f'    - {rv[0]}: {rv[1]}')
     else:
         print('- ERROR: no returned versions (unsupported product?)')
 
@@ -291,7 +276,7 @@ parser = init_argparser()
 args = parser.parse_args()
 
 if args.version:
-    print('generate-repo-files v' + g_version)
+    print(f'generate-repo-files v{g_version}')
     sys.exit(0)
 
 if args.verbose:

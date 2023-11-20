@@ -17,10 +17,12 @@ class testLockedCache(RecursorTest):
     """
 
     def getCacheTTL(self):
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'dump-cache',
-                          '-']
+        rec_controlCmd = [
+            os.environ['RECCONTROL'],
+            f'--config-dir=configs/{self._confdir}',
+            'dump-cache',
+            '-',
+        ]
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT, text=True)
             for i in ret.splitlines():
@@ -66,10 +68,12 @@ class testNotLockedCache(RecursorTest):
     """
 
     def getCacheTTL(self):
-        rec_controlCmd = [os.environ['RECCONTROL'],
-                          '--config-dir=%s' % 'configs/' + self._confdir,
-                          'dump-cache',
-                          '-']
+        rec_controlCmd = [
+            os.environ['RECCONTROL'],
+            f'--config-dir=configs/{self._confdir}',
+            'dump-cache',
+            '-',
+        ]
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT, text=True)
             for i in ret.splitlines():

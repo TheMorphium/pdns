@@ -22,8 +22,8 @@ class RecursorEDNSPaddingTest(RecursorTest):
         # we only need these auths and this cuts the needed time in half
         if cls._auth_zones:
             for auth_suffix in ['8', '9', '10']:
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
-                ipaddress = cls._PREFIX + '.' + auth_suffix
+                authconfdir = os.path.join(confdir, f'auth-{auth_suffix}')
+                ipaddress = f'{cls._PREFIX}.{auth_suffix}'
                 cls.startAuth(authconfdir, ipaddress)
 
         cls.generateRecursorConfig(confdir)
@@ -65,9 +65,7 @@ class RecursorEDNSPaddingTest(RecursorTest):
             data = None
 
         sock.close()
-        message = None
-        if data:
-            message = dns.message.from_wire(data)
+        message = dns.message.from_wire(data) if data else None
         return message
 
     def testQueryWithoutEDNS(self):

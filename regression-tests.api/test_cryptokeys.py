@@ -42,7 +42,11 @@ class Cryptokeys(ApiTestCase):
         self.keyid = self.add_zone_key()
 
         #checks the status code. I don't know how to test explicit that the backend fail removing a key.
-        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
+        r = self.session.delete(
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            )
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -52,25 +56,41 @@ class Cryptokeys(ApiTestCase):
 
     def test_get_wrong_zone(self):
         self.keyid = self.add_zone_key()
-        r = self.session.get(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
+        r = self.session.get(
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}fail/cryptokeys/{self.keyid}"
+            )
+        )
         self.assertEqual(r.status_code, 404)
 
     def test_delete_wrong_id(self):
         self.keyid = self.add_zone_key()
-        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/1234567"))
+        r = self.session.delete(
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/1234567"
+            )
+        )
         self.assertEqual(r.status_code, 404)
 
     def test_delete_wrong_zone(self):
         self.keyid = self.add_zone_key()
         #checks for not covered zonename
-        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"fail/cryptokeys/"+self.keyid))
+        r = self.session.delete(
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}fail/cryptokeys/{self.keyid}"
+            )
+        )
         self.assertEqual(r.status_code, 404)
 
     def test_delete_key_is_gone(self):
         self.keyid = self.add_zone_key()
         self.remove_zone_key(self.keyid)
         #checks for key is gone. Its ok even if no key had to be deleted. Or something went wrong with the backend.
-        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid))
+        r = self.session.delete(
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            )
+        )
         self.assertEqual(r.status_code, 404)
 
     # Prepares the json object for Post and sends it to the server
@@ -86,12 +106,11 @@ class Cryptokeys(ApiTestCase):
         if content != '':
             payload['content'] = content
         print("create key with payload:", payload)
-        r = self.session.post(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys"),
+        return self.session.post(
+            self.url(f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys"),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-
-        return r
+            headers={'content-type': 'application/json'},
+        )
 
     # Test POST for a positive result and delete the added key
     def post_helper(self, content='', algo='', bits=None):
@@ -195,9 +214,12 @@ class Cryptokeys(ApiTestCase):
             'published': True,
         }
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -214,9 +236,12 @@ class Cryptokeys(ApiTestCase):
         }
 
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload2),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -234,9 +259,12 @@ class Cryptokeys(ApiTestCase):
         }
 
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -253,9 +281,12 @@ class Cryptokeys(ApiTestCase):
             'published': True,
         }
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload2),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -271,9 +302,12 @@ class Cryptokeys(ApiTestCase):
             'published': False,
         }
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -290,9 +324,12 @@ class Cryptokeys(ApiTestCase):
         }
 
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload2),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -310,9 +347,12 @@ class Cryptokeys(ApiTestCase):
         }
 
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 
@@ -329,9 +369,12 @@ class Cryptokeys(ApiTestCase):
             'published': False,
         }
         r = self.session.put(
-            self.url("/api/v1/servers/localhost/zones/"+self.zone+"/cryptokeys/"+self.keyid),
+            self.url(
+                f"/api/v1/servers/localhost/zones/{self.zone}/cryptokeys/{self.keyid}"
+            ),
             data=json.dumps(payload2),
-            headers={'content-type': 'application/json'})
+            headers={'content-type': 'application/json'},
+        )
         self.assertEqual(r.status_code, 204)
         self.assertEqual(r.content, b"")
 

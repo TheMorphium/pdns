@@ -65,16 +65,16 @@ class KeyrollerDomain:
         if self.state.is_rolling:
             nextaction = self.state.current_roll.current_step_datetime
             ret.append(nextaction)
-            logger.debug("{}: Next roll step {}".format(self.zone, nextaction))
+            logger.debug(f"{self.zone}: Next roll step {nextaction}")
         else:
             if self.config.zsk_frequency != 0:
                 nextaction = self.next_zsk_roll()
                 ret.append(nextaction)
-                logger.debug("{}: Next ZSK roll {}".format(self.zone, nextaction))
+                logger.debug(f"{self.zone}: Next ZSK roll {nextaction}")
             if self.config.ksk_frequency != 0:
                 nextaction = self.next_ksk_roll()
                 ret.append(nextaction)
-                logger.debug("{}: Next KSK roll {}".format(self.zone, nextaction))
+                logger.debug(f"{self.zone}: Next KSK roll {nextaction}")
         if ret:
             ret.sort()
             return ret[0]
@@ -82,6 +82,4 @@ class KeyrollerDomain:
 
 
     def __repr__(self):
-        return 'keyrollerDomain("{}", {}, {}, {})'.format(
-            self.zone, self.api, self.config, self.state
-        )
+        return f'keyrollerDomain("{self.zone}", {self.api}, {self.config}, {self.state})'

@@ -42,10 +42,10 @@ servfail.example.org.        3600 IN ALIAS servfail.example.com
     def startResponders(cls):
         global aliasUDPReactorRunning
 
-        address = cls._PREFIX + '.1'
-        port = 5301
-
+        address = f'{cls._PREFIX}.1'
         if not aliasUDPReactorRunning:
+            port = 5301
+
             reactor.listenUDP(port, AliasUDPResponder(), interface=address)
 
             aliasUDPReactorRunning = True

@@ -18,13 +18,15 @@ class RRSet:
         self.comments = comments
 
     def __repr__(self):
-        return 'RRSet("{}", "{}", {}, {}, {})'.format(self.name, self.rtype, self.ttl, self.records, self.comments)
+        return f'RRSet("{self.name}", "{self.rtype}", {self.ttl}, {self.records}, {self.comments})'
 
     def __str__(self):
-        ret = '\n'.join(['; {}'.format(c) for c in self.comments])
-        ret += '\n'.join(['{}{}\tIN\t{}\t{}'.format(';' if rec.disabled else '', self.name, self.rtype, rec.content)
-                         for rec in self.records])
-        return ret
+        return '\n'.join([f'; {c}' for c in self.comments]) + '\n'.join(
+            [
+                f"{';' if rec.disabled else ''}{self.name}\tIN\t{self.rtype}\t{rec.content}"
+                for rec in self.records
+            ]
+        )
 
     @property
     def records(self):
@@ -36,8 +38,7 @@ class RRSet:
             raise Exception('TODO')
         if all(isinstance(v, dict) for v in val):
             self._records = []
-            for v in val:
-                self._records.append(Record(**v))
+            self._records.extend(Record(**v) for v in val)
             return
         if not all(isinstance(v, Record) for v in val):
             raise Exception('Not all records are of type Record')
@@ -53,8 +54,7 @@ class RRSet:
             raise Exception('TODO')
         if all(isinstance(v, dict) for v in val):
             self._comments = []
-            for v in val:
-                self._comments.append(Comment(**v))
+            self._comments.extend(Comment(**v) for v in val)
             return
         if not all(isinstance(v, Comment) for v in val):
             raise Exception('Not all comments are of type Comment')
@@ -74,7 +74,7 @@ class Record:
         self.disabled = bool(disabled)
 
     def __repr__(self):
-        return 'Record("{}", "{}")'.format(self.content, self.disabled)
+        return f'Record("{self.content}", "{self.disabled}")'
 
 
 class Comment:
@@ -92,10 +92,10 @@ class Comment:
         self.account = account
 
     def __repr__(self):
-        return 'Comment("{}", "{}", "{})'.format(self.content, self.modified_at, self.account)
+        return f'Comment("{self.content}", "{self.modified_at}", "{self.account})'
 
     def __str__(self):
-        return '{} by {} on {}'.format(self.content, self.account, self.modified_at)
+        return f'{self.content} by {self.account} on {self.modified_at}'
 
 
 class Zone:
@@ -118,14 +118,20 @@ class Zone:
                 setattr(self, k, v)
 
     def __str__(self):
-        ret = "{}".format('\n'.join(['; {} = {}'.format(
-            k, str(getattr(self, k))) for k in Zone._keys if getattr(self, k, None) and k != 'rrsets']))
+        ret = "{}".format(
+            '\n'.join(
+                [
+                    f'; {k} = {str(getattr(self, k))}'
+                    for k in Zone._keys
+                    if getattr(self, k, None) and k != 'rrsets'
+                ]
+            )
+        )
         ret += "\n{}".format('\n'.join([str(v) for v in self.rrsets]))
         return ret
 
     def __repr__(self):
-        return 'Zone({})'.format(
-            ', '.join(['{}="{}"'.format(k, getattr(self, k)) for k in Zone._keys if getattr(self, k, None)]))
+        return f"""Zone({', '.join([f'{k}="{getattr(self, k)}"' for k in Zone._keys if getattr(self, k, None)])})"""
 
     @property
     def kind(self):
@@ -152,8 +158,7 @@ class Zone:
             raise Exception('Please pass a list of RRSets')
         if all(isinstance(v, dict) for v in val):
             self._rrsets = []
-            for v in val:
-                self._rrsets.append(RRSet(**v))
+            self._rrsets.extend(RRSet(**v) for v in val)
             return
         if not all(isinstance(v, RRSet) for v in val):
             raise Exception('Not all rrsets are actually RRSets')

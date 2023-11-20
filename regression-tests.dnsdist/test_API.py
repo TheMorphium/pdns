@@ -66,7 +66,7 @@ class TestAPIBasics(APITestsBase):
         API: Basic Authentication
         """
         for path in self._basicOnlyPaths + self._statsPaths:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
             r = requests.get(url, auth=('whatever', "evilsecret"), timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
             r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
@@ -79,7 +79,7 @@ class TestAPIBasics(APITestsBase):
         """
         headers = {'x-api-key': self._webServerAPIKey}
         for path in self._apiOnlyPaths + self._statsPaths:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
             self.assertTrue(r)
             self.assertEqual(r.status_code, 200)
@@ -90,7 +90,7 @@ class TestAPIBasics(APITestsBase):
         """
         headers = {'x-api-key': "evilapikey"}
         for path in self._apiOnlyPaths + self._statsPaths:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
 
@@ -100,7 +100,7 @@ class TestAPIBasics(APITestsBase):
         """
         headers = {'x-api-key': self._webServerAPIKey}
         for path in self._basicOnlyPaths:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
             r = requests.get(url, headers=headers, timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
 
@@ -109,7 +109,7 @@ class TestAPIBasics(APITestsBase):
         API: API Key Only
         """
         for path in self._apiOnlyPaths:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
             r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
 
@@ -118,7 +118,7 @@ class TestAPIBasics(APITestsBase):
         API: /api/v1/servers/localhost
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -179,7 +179,7 @@ class TestAPIBasics(APITestsBase):
         API: /api/v1/servers/localhost/pool?name=mypool
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/pool?name=mypool'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost/pool?name=mypool'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -215,7 +215,7 @@ class TestAPIBasics(APITestsBase):
         API: /api/v1/servers/idonotexist (should be 404)
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/idonotexist'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/idonotexist'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertEqual(r.status_code, 404)
 
@@ -224,7 +224,7 @@ class TestAPIBasics(APITestsBase):
         API: /api/v1/servers/localhost/config
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost/config'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -256,7 +256,7 @@ class TestAPIBasics(APITestsBase):
         API: /api/v1/servers/localhost/config/allow-from
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config/allow-from'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost/config/allow-from'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -284,7 +284,7 @@ class TestAPIBasics(APITestsBase):
                               "type": "ConfigSetting",
                               "value": newACL})
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config/allow-from'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost/config/allow-from'
         r = requests.put(url, headers=headers, timeout=self._webTimeout, data=payload)
         self.assertFalse(r)
         self.assertEqual(r.status_code, 405)
@@ -294,7 +294,7 @@ class TestAPIBasics(APITestsBase):
         API: /api/v1/servers/localhost/statistics
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/statistics'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -320,7 +320,7 @@ class TestAPIBasics(APITestsBase):
         API: /jsonstat?command=stats
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=stats'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/jsonstat?command=stats'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -336,14 +336,12 @@ class TestAPIBasics(APITestsBase):
         API: /jsonstat?command=dynblocklist
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=dynblocklist'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/jsonstat?command=dynblocklist'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
 
-        content = r.json()
-
-        if content:
+        if content := r.json():
             for key in ['reason', 'seconds', 'blocks', 'action']:
                 self.assertIn(key, content)
 
@@ -365,7 +363,7 @@ class TestAPIServerDown(APITestsBase):
         API: /api/v1/servers/localhost, no latency for a down server
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -392,7 +390,7 @@ class TestAPIWritable(APITestsBase):
         API: Set ACL
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/config/allow-from'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost/config/allow-from'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -426,7 +424,7 @@ class TestAPIWritable(APITestsBase):
         acl.sort()
         self.assertEqual(acl, newACL)
 
-        configFile = self._APIWriteDir + '/' + 'acl.conf'
+        configFile = f'{self._APIWriteDir}/acl.conf'
         self.assertTrue(os.path.isfile(configFile))
         fileContent = None
         with open(configFile, 'rt') as f:
@@ -467,7 +465,7 @@ class TestAPICustomHeaders(APITestsBase):
         API: Basic custom headers
         """
 
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
+        url = f'http://127.0.0.1:{str(self._webServerPort)}{self._basicOnlyPath}'
 
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertTrue(r)
@@ -480,7 +478,7 @@ class TestAPICustomHeaders(APITestsBase):
         API: Basic update of custom headers
         """
 
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
+        url = f'http://127.0.0.1:{str(self._webServerPort)}{self._basicOnlyPath}'
         self.sendConsoleCommand('setWebserverConfig({customHeaders={["x-powered-by"]="dnsdist"}})')
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
         self.assertTrue(r)
@@ -513,7 +511,7 @@ class TestStatsWithoutAuthentication(APITestsBase):
         """
 
         for path in self._noAuthenticationPaths:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
 
             r = requests.get(url, timeout=self._webTimeout)
             self.assertTrue(r)
@@ -521,7 +519,7 @@ class TestStatsWithoutAuthentication(APITestsBase):
 
         # these should still require basic authentication
         for path in [self._basicOnlyPath]:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
 
             r = requests.get(url, timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
@@ -532,7 +530,7 @@ class TestStatsWithoutAuthentication(APITestsBase):
 
         # these should still require API authentication
         for path in [self._apiOnlyPath]:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
 
             r = requests.get(url, timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
@@ -569,7 +567,7 @@ class TestAPIAuth(APITestsBase):
         API: Basic Authentication updating credentials
         """
 
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._basicOnlyPath
+        url = f'http://127.0.0.1:{str(self._webServerPort)}{self._basicOnlyPath}'
         self.sendConsoleCommand('setWebserverConfig({{password="{}"}})'.format(self._webServerBasicAuthPasswordNewHashed))
 
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPasswordNew), timeout=self._webTimeout)
@@ -585,7 +583,7 @@ class TestAPIAuth(APITestsBase):
         API: X-Api-Key updating credentials
         """
 
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
+        url = f'http://127.0.0.1:{str(self._webServerPort)}{self._apiOnlyPath}'
         self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNewHashed))
 
         headers = {'x-api-key': self._webServerAPIKeyNew}
@@ -603,7 +601,7 @@ class TestAPIAuth(APITestsBase):
         API: X-Api-Key updated to none (disabled)
         """
 
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + self._apiOnlyPath
+        url = f'http://127.0.0.1:{str(self._webServerPort)}{self._apiOnlyPath}'
         self.sendConsoleCommand('setWebserverConfig({{apiKey="{}"}})'.format(self._webServerAPIKeyNewHashed))
 
         headers = {'x-api-key': self._webServerAPIKeyNew}
@@ -636,7 +634,7 @@ class TestAPIACL(APITestsBase):
         API: Should be denied by ACL then allowed
         """
 
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + "/"
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/'
         try:
             r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
             self.assertTrue(False)
@@ -669,7 +667,7 @@ class TestAPIWithoutAuthentication(APITestsBase):
         """
 
         for path in [self._apiPath]:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
 
             r = requests.get(url, timeout=self._webTimeout)
             self.assertTrue(r)
@@ -677,7 +675,7 @@ class TestAPIWithoutAuthentication(APITestsBase):
 
         # these should still require basic authentication
         for path in [self._basicOnlyPath]:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
 
             r = requests.get(url, timeout=self._webTimeout)
             self.assertEqual(r.status_code, 401)
@@ -704,7 +702,7 @@ class TestDashboardWithoutAuthentication(APITestsBase):
         """
 
         for path in [self._basicPath]:
-            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+            url = f'http://127.0.0.1:{str(self._webServerPort)}{path}'
 
             r = requests.get(url, timeout=self._webTimeout)
             self.assertTrue(r)
@@ -758,7 +756,7 @@ class TestCustomLuaEndpoint(APITestsBase):
         """
         Custom Web Handler
         """
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/foo?param=42'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/foo?param=42'
         headers = {'customheader': 'foobar'}
         r = requests.get(url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout, headers=headers)
         self.assertTrue(r)
@@ -798,7 +796,7 @@ class TestWebConcurrentConnections(APITestsBase):
             conns.append(conn)
 
         # we now hold all the slots, let's try to establish a new connection
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + "/"
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/'
         self.assertRaises(requests.exceptions.ConnectionError, requests.get, url, auth=('whatever', self._webServerBasicAuthPassword), timeout=self._webTimeout)
 
         # free one slot
@@ -831,7 +829,7 @@ class TestAPICustomStatistics(APITestsBase):
         Test custom statistics are exposed
         """
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/jsonstat?command=stats'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/jsonstat?command=stats'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)

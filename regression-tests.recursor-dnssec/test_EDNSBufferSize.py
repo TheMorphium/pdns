@@ -58,10 +58,10 @@ edns-outgoing-bufsize=%d
         global ednsBufferReactorRunning
         print("Launching responders..")
 
-        address = cls._PREFIX + '.22'
-        port = 53
-
+        address = f'{cls._PREFIX}.22'
         if not ednsBufferReactorRunning:
+            port = 53
+
             reactor.listenUDP(port, UDPLargeResponder(), interface=address)
             ednsBufferReactorRunning = True
 
@@ -93,8 +93,7 @@ edns-outgoing-bufsize=%d
             self.assertEqual(record.rdtype, dns.rdatatype.TXT)
             for part in record:
                 for string in part.strings:
-                    self.assertTrue(len(string) == 255 or
-                                    len(string) == txt_final)
+                    self.assertTrue(len(string) in [255, txt_final])
 
     def checkTruncatedResponse(self, message):
         self.assertMessageHasFlags(message, ['QR', 'RD', 'RA', 'TC'])
@@ -225,9 +224,9 @@ class UDPLargeResponder(DatagramProtocol):
         # Unless we have special tests
         if testnum == 6:
             packet_size = 512 + 11
-        if testnum == 7:
+        elif testnum == 7:
             packet_size = 513 + 11
-        if testnum == 8:
+        elif testnum == 8:
             packet_size = 501 + 11
 
         # An EDNS(0) RR without options is 11 bytes:

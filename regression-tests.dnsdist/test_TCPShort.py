@@ -125,173 +125,161 @@ class TestTCPShort(DNSDistTest):
         self.assertEqual(receivedResponse, expectedResponse)
 
     def testTCPShortWrite(self):
-        """
+      """
         TCP: Short write to client
         """
-        name = 'short-write.tcp-short.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AXFR', 'IN')
+      name = 'short-write.tcp-short.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'AXFR', 'IN')
 
-        # we prepare a large AXFR answer
-        # SOA + 200 dns messages of one huge TXT RRset each + SOA
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
+      soa = dns.rrset.from_text(
+          name,
+          60,
+          dns.rdataclass.IN,
+          dns.rdatatype.SOA,
+          f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+      )
+
+      soaResponse = dns.message.make_response(query)
+      soaResponse.use_edns(edns=False)
+      soaResponse.answer.append(soa)
+      responses = [soaResponse]
+      response = dns.message.make_response(query)
+      response.use_edns(edns=False)
+      content = ""
+      for i in range(200):
+        if len(content) > 0:
+          content = f'{content}, '
+        content = content + (str(i)*50)
+
+      rrset = dns.rrset.from_text(name,
+                                  3600,
                                   dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+                                  dns.rdatatype.TXT,
+                                  content)
+      response.answer.append(rrset)
 
-        soaResponse = dns.message.make_response(query)
-        soaResponse.use_edns(edns=False)
-        soaResponse.answer.append(soa)
-        responses.append(soaResponse)
+      responses.extend(response for _ in range(200))
+      responses.append(soaResponse)
 
-        response = dns.message.make_response(query)
-        response.use_edns(edns=False)
-        content = ""
-        for i in range(200):
-            if len(content) > 0:
-                content = content + ', '
-            content = content + (str(i)*50)
+      conn = self.openTCPConnection()
 
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    content)
-        response.answer.append(rrset)
+      for response in responses:
+          self._toResponderQueue.put(response, True, 2.0)
 
-        for _ in range(200):
-            responses.append(response)
+      self.sendTCPQueryOverConnection(conn, query)
 
-        responses.append(soaResponse)
+      # we sleep for one second, making sure that dnsdist
+      # will fill its TCP window and buffers, which will result
+      # in some short writes
+      time.sleep(1)
 
-        conn = self.openTCPConnection()
+      # we then read the messages
+      receivedResponses = []
+      while True:
+        datalen = conn.recv(2)
+        if not datalen:
+            break
 
-        for response in responses:
-            self._toResponderQueue.put(response, True, 2.0)
+        (datalen,) = struct.unpack("!H", datalen)
+        data = b''
+        remaining = datalen
+        while got := conn.recv(remaining):
+          data = data + got
+          if len(data) == datalen:
+              break
+          remaining = remaining - len(got)
+          if remaining <= 0:
+              break
+        if data and len(data) == datalen:
+            receivedResponse = dns.message.from_wire(data)
+            receivedResponses.append(receivedResponse)
 
-        self.sendTCPQueryOverConnection(conn, query)
+      receivedQuery = None
+      if not self._fromResponderQueue.empty():
+          receivedQuery = self._fromResponderQueue.get(True, 2.0)
 
-        # we sleep for one second, making sure that dnsdist
-        # will fill its TCP window and buffers, which will result
-        # in some short writes
-        time.sleep(1)
+      conn.close()
 
-        # we then read the messages
-        receivedResponses = []
-        while True:
-            datalen = conn.recv(2)
-            if not datalen:
-                break
-
-            (datalen,) = struct.unpack("!H", datalen)
-            data = b''
-            remaining = datalen
-            got = conn.recv(remaining)
-            while got:
-                data = data + got
-                if len(data) == datalen:
-                    break
-                remaining = remaining - len(got)
-                if remaining <= 0:
-                    break
-                got = conn.recv(remaining)
-
-            if data and len(data) == datalen:
-                receivedResponse = dns.message.from_wire(data)
-                receivedResponses.append(receivedResponse)
-
-        receivedQuery = None
-        if not self._fromResponderQueue.empty():
-            receivedQuery = self._fromResponderQueue.get(True, 2.0)
-
-        conn.close()
-
-        # and check that everything is good
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(receivedResponses, responses)
+      # and check that everything is good
+      self.assertTrue(receivedQuery)
+      receivedQuery.id = query.id
+      self.assertEqual(query, receivedQuery)
+      self.assertEqual(receivedResponses, responses)
 
     def testTCPTLSShortWrite(self):
-        """
+      """
         TCP/TLS: Short write to client
         """
-        # same as testTCPShortWrite but over TLS this time
-        name = 'short-write-tls.tcp-short.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'AXFR', 'IN')
-        responses = []
-        soa = dns.rrset.from_text(name,
-                                  60,
+      # same as testTCPShortWrite but over TLS this time
+      name = 'short-write-tls.tcp-short.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'AXFR', 'IN')
+      soa = dns.rrset.from_text(
+          name,
+          60,
+          dns.rdataclass.IN,
+          dns.rdatatype.SOA,
+          f'ns.{name} hostmaster.{name} 1 3600 3600 3600 60',
+      )
+
+      soaResponse = dns.message.make_response(query)
+      soaResponse.use_edns(edns=False)
+      soaResponse.answer.append(soa)
+      responses = [soaResponse]
+      response = dns.message.make_response(query)
+      response.use_edns(edns=False)
+      content = ""
+      for i in range(200):
+        if len(content) > 0:
+          content = f'{content}, '
+        content = content + (str(i)*50)
+
+      rrset = dns.rrset.from_text(name,
+                                  3600,
                                   dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+                                  dns.rdatatype.TXT,
+                                  content)
+      response.answer.append(rrset)
 
-        soaResponse = dns.message.make_response(query)
-        soaResponse.use_edns(edns=False)
-        soaResponse.answer.append(soa)
-        responses.append(soaResponse)
+      responses.extend(response for _ in range(200))
+      responses.append(soaResponse)
 
-        response = dns.message.make_response(query)
-        response.use_edns(edns=False)
-        content = ""
-        for i in range(200):
-            if len(content) > 0:
-                content = content + ', '
-            content = content + (str(i)*50)
+      conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
 
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.TXT,
-                                    content)
-        response.answer.append(rrset)
+      for response in responses:
+          self._toResponderQueue.put(response, True, 2.0)
 
-        for _ in range(200):
-            responses.append(response)
+      self.sendTCPQueryOverConnection(conn, query)
 
-        responses.append(soaResponse)
+      time.sleep(1)
 
-        conn = self.openTLSConnection(self._tlsServerPort, self._serverName, self._caCert)
+      receivedResponses = []
+      while True:
+        datalen = conn.recv(2)
+        if not datalen:
+            break
 
-        for response in responses:
-            self._toResponderQueue.put(response, True, 2.0)
+        (datalen,) = struct.unpack("!H", datalen)
+        data = b''
+        remaining = datalen
+        while got := conn.recv(remaining):
+          data = data + got
+          if len(data) == datalen:
+              break
+          remaining = remaining - len(got)
+          if remaining <= 0:
+              break
+        if data and len(data) == datalen:
+            receivedResponse = dns.message.from_wire(data)
+            receivedResponses.append(receivedResponse)
 
-        self.sendTCPQueryOverConnection(conn, query)
+      receivedQuery = None
+      if not self._fromResponderQueue.empty():
+          receivedQuery = self._fromResponderQueue.get(True, 2.0)
 
-        time.sleep(1)
+      conn.close()
 
-        receivedResponses = []
-        while True:
-            datalen = conn.recv(2)
-            if not datalen:
-                break
-
-            (datalen,) = struct.unpack("!H", datalen)
-            data = b''
-            remaining = datalen
-            got = conn.recv(remaining)
-            while got:
-                data = data + got
-                if len(data) == datalen:
-                    break
-                remaining = remaining - len(got)
-                if remaining <= 0:
-                    break
-                got = conn.recv(remaining)
-
-            if data and len(data) == datalen:
-                receivedResponse = dns.message.from_wire(data)
-                receivedResponses.append(receivedResponse)
-
-        receivedQuery = None
-        if not self._fromResponderQueue.empty():
-            receivedQuery = self._fromResponderQueue.get(True, 2.0)
-
-        conn.close()
-
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(len(receivedResponses), len(responses))
-        self.assertEqual(receivedResponses, responses)
+      self.assertTrue(receivedQuery)
+      receivedQuery.id = query.id
+      self.assertEqual(query, receivedQuery)
+      self.assertEqual(len(receivedResponses), len(responses))
+      self.assertEqual(receivedResponses, responses)

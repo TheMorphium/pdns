@@ -15,7 +15,7 @@ class AuthTSIGHelperMixin(object):
             'algorithm': algorithm,
         }
         if key is not None:
-            payload.update({'key': key})
+            payload['key'] = key
         print("sending", payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/tsigkeys"),
@@ -61,9 +61,10 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         Try to get get a key that does not exist
         """
         name = "idonotexist"
-        r = self.session.get(self.url(
-            "/api/v1/servers/localhost/tsigkeys/" + name + '.'),
-            headers={'accept': 'application/json'})
+        r = self.session.get(
+            self.url(f"/api/v1/servers/localhost/tsigkeys/{name}."),
+            headers={'accept': 'application/json'},
+        )
         self.assert_error_json(r)
         self.assertEqual(r.status_code, 404)
         newdata = r.json()
@@ -155,9 +156,11 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
         payload = {
             'algorithm': 'hmac-sha512'
         }
-        r = self.session.put(self.url("/api/v1/servers/localhost/tsigkeys/" + name + '.'),
-                             data=json.dumps(payload),
-                             headers={'accept': 'application/json'})
+        r = self.session.put(
+            self.url(f"/api/v1/servers/localhost/tsigkeys/{name}."),
+            data=json.dumps(payload),
+            headers={'accept': 'application/json'},
+        )
         self.assertEqual(r.status_code, 404)
         data = r.json()
         self.assertIn('TSIG key with name \'' + name + '\' not found', data['error'])

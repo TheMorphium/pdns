@@ -49,7 +49,7 @@ class TestRuleMetrics(DNSDistTest):
 
     def getMetric(self, name):
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -71,25 +71,25 @@ class TestRuleMetrics(DNSDistTest):
         servfailBackendResponses = self.getMetric('servfail-responses')
 
         for (name, rcode) in rcodes:
-            qname = 'rcode-' + name + '.metrics.tests.powerdns.com.'
+            qname = f'rcode-{name}.metrics.tests.powerdns.com.'
             query = dns.message.make_query(qname, 'A', 'IN')
             # dnsdist set RA = RD for spoofed responses
             query.flags &= ~dns.flags.RD
             expectedResponse = dns.message.make_response(query)
             expectedResponse.set_rcode(rcode)
 
-            ruleMetricBefore = self.getMetric('rule-' + name)
+            ruleMetricBefore = self.getMetric(f'rule-{name}')
             if name != 'refused':
-                frontendMetricBefore = self.getMetric('frontend-' + name)
+                frontendMetricBefore = self.getMetric(f'frontend-{name}')
 
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertEqual(receivedResponse, expectedResponse)
 
-            self.assertEqual(self.getMetric('rule-' + name), ruleMetricBefore + 2)
+            self.assertEqual(self.getMetric(f'rule-{name}'), ruleMetricBefore + 2)
             if name != 'refused':
-                self.assertEqual(self.getMetric('frontend-' + name), frontendMetricBefore + 2)
+                self.assertEqual(self.getMetric(f'frontend-{name}'), frontendMetricBefore + 2)
 
         # self-generated responses should not increase this metric
         self.assertEqual(self.getMetric('servfail-responses'), servfailBackendResponses)
@@ -99,7 +99,7 @@ class TestRuleMetrics(DNSDistTest):
         """
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):
-            qname = method + '.cache.metrics.tests.powerdns.com.'
+            qname = f'{method}.cache.metrics.tests.powerdns.com.'
             query = dns.message.make_query(qname, 'A', 'IN')
             # dnsdist set RA = RD for spoofed responses
             query.flags &= ~dns.flags.RD
@@ -135,7 +135,7 @@ class TestRuleMetrics(DNSDistTest):
         """
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):
-            qname = method + '.servfail.cache.metrics.tests.powerdns.com.'
+            qname = f'{method}.servfail.cache.metrics.tests.powerdns.com.'
             query = dns.message.make_query(qname, 'A', 'IN')
             # dnsdist set RA = RD for spoofed responses
             query.flags &= ~dns.flags.RD

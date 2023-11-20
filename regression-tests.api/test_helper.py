@@ -34,10 +34,13 @@ class ApiTestCase(unittest.TestCase):
         self.server_address = '127.0.0.1'
         self.webServerBasicAuthPassword = 'something'
         self.server_port = int(os.environ.get('WEBPORT', '5580'))
-        self.server_url = 'http://%s:%s/' % (self.server_address, self.server_port)
+        self.server_url = f'http://{self.server_address}:{self.server_port}/'
         self.server_web_password = os.environ.get('WEBPASSWORD', 'MISSING')
         self.session = requests.Session()
-        self.session.headers = {'X-API-Key': os.environ.get('APIKEY', 'changeme-key'), 'Origin': 'http://%s:%s' % (self.server_address, self.server_port)}
+        self.session.headers = {
+            'X-API-Key': os.environ.get('APIKEY', 'changeme-key'),
+            'Origin': f'http://{self.server_address}:{self.server_port}',
+        }
 
     def url(self, relative_url):
         return urljoin(self.server_url, relative_url)
@@ -51,8 +54,15 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(result.headers['Content-Type'], 'application/json')
 
     def assert_error_json(self, result):
-        self.assertTrue(400 <= result.status_code < 600, "Response has not an error code "+str(result.status_code))
-        self.assertEqual(result.headers['Content-Type'], 'application/json', "Response status code "+str(result.status_code))
+        self.assertTrue(
+            400 <= result.status_code < 600,
+            f"Response has not an error code {str(result.status_code)}",
+        )
+        self.assertEqual(
+            result.headers['Content-Type'],
+            'application/json',
+            f"Response status code {str(result.status_code)}",
+        )
 
     def assert_success(self, result):
         try:

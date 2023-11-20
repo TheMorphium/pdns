@@ -25,13 +25,13 @@ class TestSNMP(DNSDistTest):
     _verboseMode = True
 
     def _checkStatsValues(self, results, queriesCountersValue):
-        for i in list(range(1, 5)) + list(range(6, 20)) + list(range(24, 35)) + [ 35 ] :
-            oid = self._snmpOID + '.1.' + str(i) + '.0'
+        for i in list(range(1, 5)) + list(range(6, 20)) + list(range(24, 35)) + [ 35 ]:
+            oid = f'{self._snmpOID}.1.{str(i)}.0'
             self.assertTrue(oid in results)
             self.assertTrue(isinstance(results[oid], Counter64))
 
         for i in range(20, 23):
-            oid = self._snmpOID + '.1.' + str(i) + '.0'
+            oid = f'{self._snmpOID}.1.{str(i)}.0'
             self.assertTrue(isinstance(results[oid], OctetString))
 
         # check uptime > 0
@@ -41,12 +41,12 @@ class TestSNMP(DNSDistTest):
 
         # check that the queries, responses and rdQueries counters are now at queriesCountersValue
         for i in [1, 2, 28]:
-            oid = self._snmpOID + '.1.' + str(i) + '.0'
+            oid = f'{self._snmpOID}.1.{str(i)}.0'
             self.assertEqual(results[oid], queriesCountersValue)
 
         # the others counters (except for latency ones) should still be at 0
         for i in [3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 26, 27, 29, 30, 31, 35, 36]:
-            oid = self._snmpOID + '.1.' + str(i) + '.0'
+            oid = f'{self._snmpOID}.1.{str(i)}.0'
             self.assertEqual(results[oid], 0)
 
         # check the backend stats
@@ -54,10 +54,10 @@ class TestSNMP(DNSDistTest):
 
         ## types
         for i in [3, 4, 5, 6, 7, 11, 12, 13]:
-            oid = self._snmpOID + '.2.1.' + str(i) + '.0'
+            oid = f'{self._snmpOID}.2.1.{str(i)}.0'
             self.assertTrue(isinstance(results[oid], Counter64))
         for i in [2, 8, 9, 10]:
-            oid = self._snmpOID + '.2.1.' + str(i) + '.0'
+            oid = f'{self._snmpOID}.2.1.{str(i)}.0'
             self.assertTrue(isinstance(results[oid], OctetString))
 
         ## name
@@ -73,7 +73,10 @@ class TestSNMP(DNSDistTest):
         ## state
         self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.8.0']), "up")
         ## address
-        self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.9.0']), ("127.0.0.1:%s" % (self._testServerPort)))
+        self.assertEqual(
+            str(results['1.3.6.1.4.1.43315.3.2.1.9.0']),
+            f"127.0.0.1:{self._testServerPort}",
+        )
         ## pools
         self.assertEqual(str(results['1.3.6.1.4.1.43315.3.2.1.10.0']), "")
         ## queries

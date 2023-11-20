@@ -33,7 +33,7 @@ class AggressiveNSECCacheBase(RecursorTest):
 
     def getMetric(self, name):
         headers = {'x-api-key': self._apiKey}
-        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        url = f'http://127.0.0.1:{str(self._wsPort)}/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -241,22 +241,26 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
     def secureZone(cls, confdir, zonename, key=None):
         zone = '.' if zonename == 'ROOT' else zonename
         if not key:
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'secure-zone',
-                           zone]
+            pdnsutilCmd = [
+                os.environ['PDNSUTIL'],
+                f'--config-dir={confdir}',
+                'secure-zone',
+                zone,
+            ]
         else:
             keyfile = os.path.join(confdir, 'dnssec.key')
             with open(keyfile, 'w') as fdKeyfile:
                 fdKeyfile.write(key)
 
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'import-zone-key',
-                           zone,
-                           keyfile,
-                           'active',
-                           'ksk']
+            pdnsutilCmd = [
+                os.environ['PDNSUTIL'],
+                f'--config-dir={confdir}',
+                'import-zone-key',
+                zone,
+                keyfile,
+                'active',
+                'ksk',
+            ]
 
         print(' '.join(pdnsutilCmd))
         try:
@@ -269,11 +273,13 @@ class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
         if zone == "optout.example":
             params = "1 1 100 AABBCCDDEEFF112233"
 
-        pdnsutilCmd = [os.environ['PDNSUTIL'],
-                       '--config-dir=%s' % confdir,
-                       'set-nsec3',
-                       zone,
-                       params]
+        pdnsutilCmd = [
+            os.environ['PDNSUTIL'],
+            f'--config-dir={confdir}',
+            'set-nsec3',
+            zone,
+            params,
+        ]
 
         print(' '.join(pdnsutilCmd))
         try:

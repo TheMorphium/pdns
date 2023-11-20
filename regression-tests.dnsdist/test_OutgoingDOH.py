@@ -26,7 +26,7 @@ class OutgoingDOHTests(object):
 
     def getServerStat(self, key):
         headers = {'x-api-key': self._webServerAPIKey}
-        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        url = f'http://127.0.0.1:{str(self._webServerPort)}/api/v1/servers/localhost'
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
@@ -452,20 +452,29 @@ class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenRespon
     addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
 
-    def callback(request, headers, fromQueue, toQueue):
+    def callback(self, headers, fromQueue, toQueue):
 
-        if str(request.question[0].name) == '500-status.broken-responses.outgoing-doh.test.powerdns.com.':
+        if (
+            str(self.question[0].name)
+            == '500-status.broken-responses.outgoing-doh.test.powerdns.com.'
+        ):
             print("returning 500")
             return 500, b'Server error'
 
-        if str(request.question[0].name) == 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.':
+        if (
+            str(self.question[0].name)
+            == 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.'
+        ):
             return 200, b'not DNS'
 
-        if str(request.question[0].name) == 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.':
+        if (
+            str(self.question[0].name)
+            == 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.'
+        ):
             return 200, None
 
-        print("Returning default for %s" % (request.question[0].name))
-        return 200, dns.message.make_response(request).to_wire()
+        print(f"Returning default for {self.question[0].name}")
+        return 200, dns.message.make_response(self).to_wire()
 
     @classmethod
     def startResponders(cls):
@@ -489,20 +498,29 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
     """
     _verboseMode = True
 
-    def callback(request, headers, fromQueue, toQueue):
+    def callback(self, headers, fromQueue, toQueue):
 
-        if str(request.question[0].name) == '500-status.broken-responses.outgoing-doh.test.powerdns.com.':
+        if (
+            str(self.question[0].name)
+            == '500-status.broken-responses.outgoing-doh.test.powerdns.com.'
+        ):
             print("returning 500")
             return 500, b'Server error'
 
-        if str(request.question[0].name) == 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.':
+        if (
+            str(self.question[0].name)
+            == 'invalid-dns-payload.broken-responses.outgoing-doh.test.powerdns.com.'
+        ):
             return 200, b'not DNS'
 
-        if str(request.question[0].name) == 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.':
+        if (
+            str(self.question[0].name)
+            == 'closing-connection-id.broken-responses.outgoing-doh.test.powerdns.com.'
+        ):
             return 200, None
 
-        print("Returning default for %s" % (request.question[0].name))
-        return 200, dns.message.make_response(request).to_wire()
+        print(f"Returning default for {self.question[0].name}")
+        return 200, dns.message.make_response(self).to_wire()
 
     @classmethod
     def startResponders(cls):
@@ -571,32 +589,32 @@ class TestOutgoingDOHXForwarded(DNSDistTest):
     """
     _verboseMode = True
 
-    def callback(request, headersList, fromQueue, toQueue):
+    def callback(self, headersList, fromQueue, toQueue):
 
-        if str(request.question[0].name) == 'a.root-servers.net.':
+        if str(self.question[0].name) == 'a.root-servers.net.':
             # do not check headers on health-check queries
-            return 200, dns.message.make_response(request).to_wire()
+            return 200, dns.message.make_response(self).to_wire()
 
         headers = {}
         if headersList:
             for k,v in headersList:
                 headers[k] = v
 
-        if not b'x-forwarded-for' in headers:
+        if b'x-forwarded-for' not in headers:
             print("missing X-Forwarded-For")
             return 406, b'Missing X-Forwarded-For header'
-        if not b'x-forwarded-port' in headers:
+        if b'x-forwarded-port' not in headers:
             print("missing X-Forwarded-Port")
             return 406, b'Missing X-Forwarded-Port header'
-        if not b'x-forwarded-proto' in headers:
+        if b'x-forwarded-proto' not in headers:
             print("missing X-Forwarded-Proto")
             return 406, b'Missing X-Forwarded-Proto header'
 
-        toQueue.put(request, True, 1.0)
+        toQueue.put(self, True, 1.0)
         response = fromQueue.get(True, 1.0)
         if response:
             response = copy.copy(response)
-            response.id = request.id
+            response.id = self.id
 
         return 200, response.to_wire()
 

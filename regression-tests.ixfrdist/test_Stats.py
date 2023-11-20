@@ -66,10 +66,12 @@ webserver-address: %s
         for line in output[0].splitlines():
             if line.endswith(b"should have \"_total\" suffix"):
                 continue
-            raise AssertionError('%s returned an unexpected output. Faulty line is "%s", complete content is "%s"' % (testcmd, line, output))
+            raise AssertionError(
+                f'{testcmd} returned an unexpected output. Faulty line is "{line}", complete content is "{output}"'
+            )
 
     def test_program_stats_exist(self):
-        res = requests.get('http://{}/metrics'.format(self.webserver_address))
+        res = requests.get(f'http://{self.webserver_address}/metrics')
         self.assertEqual(res.status_code, 200)
         for line in res.text.splitlines():
             if line[0] == "#":
@@ -85,7 +87,7 @@ webserver-address: %s
         self.checkPrometheusContentPromtool(res.content)
 
     def test_registered(self):
-        res = requests.get('http://{}/metrics'.format(self.webserver_address))
+        res = requests.get(f'http://{self.webserver_address}/metrics')
         self.assertEqual(res.status_code, 200)
         for line in res.text.splitlines():
             if line.startswith('ixfrdist_domains'):
@@ -99,21 +101,21 @@ webserver-address: %s
             self.assertIn(line.split("{")[0], self.metric_domain_stats)
 
     def test_metrics_have_help(self):
-        res = requests.get('http://{}/metrics'.format(self.webserver_address))
+        res = requests.get(f'http://{self.webserver_address}/metrics')
         self.assertEqual(res.status_code, 200)
         for s in self.metric_prog_stats + self.metric_domain_stats:
-            self.assertIn('# HELP {}'.format(s), res.text)
+            self.assertIn(f'# HELP {s}', res.text)
 
     def test_metrics_have_type(self):
-        res = requests.get('http://{}/metrics'.format(self.webserver_address))
+        res = requests.get(f'http://{self.webserver_address}/metrics')
         self.assertEqual(res.status_code, 200)
         for s in self.metric_prog_stats + self.metric_domain_stats:
-            self.assertIn('# TYPE {}'.format(s), res.text)
+            self.assertIn(f'# TYPE {s}', res.text)
 
     def test_missing_metrics(self):
         all_metrics = set()
 
-        res = requests.get('http://{}/metrics'.format(self.webserver_address))
+        res = requests.get(f'http://{self.webserver_address}/metrics')
         self.assertEqual(res.status_code, 200)
 
         for line in res.text.splitlines():

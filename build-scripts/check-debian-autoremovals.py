@@ -16,8 +16,7 @@ def get_bugs_titles(bugs):
         bug_r = requests.get("https://bugs.debian.org/cgi-bin/bugreport.cgi", params={"bug": bug})
         lines = bug_r.text.split("\n")
         for line in lines:
-            match = title_regex.search(line)
-            if match:
+            if match := title_regex.search(line):
                 ret.append(match.group(1))
                 break
     return ret
@@ -56,12 +55,11 @@ def warn_removal(all_autoremovals, package_name):
 
 def main():
     all_autoremovals = get_all_autoremovals()
-    removals = []
-    for package_name in PACKAGE_NAMES:
-        if warn_removal(all_autoremovals, package_name):
-            removals.append(package_name)
-
-    if removals:
+    if removals := [
+        package_name
+        for package_name in PACKAGE_NAMES
+        if warn_removal(all_autoremovals, package_name)
+    ]:
         sys.exit(1)
     else:
         print("::notice ::No packages marked for autoremoval from Debian (yay!)")

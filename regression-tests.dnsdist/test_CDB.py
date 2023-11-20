@@ -8,13 +8,13 @@ import time
 from dnsdisttests import DNSDistTest
 
 def writeCDB(fname, variant=1):
-    cdb = cdbx.CDB.make(fname+'.tmp')
+    cdb = cdbx.CDB.make(f'{fname}.tmp')
     cdb.add(socket.inet_aton(f'127.0.0.{variant}'), b'this is the value of the source address tag')
     cdb.add(b'\x05qname\x03cdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the qname tag')
     cdb.add(b'\x06suffix\x03cdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the suffix tag')
     cdb.add(b'this is the value of the qname tag', b'this is the value of the second tag')
     cdb.commit().close()
-    os.rename(fname+'.tmp', fname)
+    os.rename(f'{fname}.tmp', fname)
     cdb.close()
 
 @unittest.skipIf('SKIP_CDB_TESTS' in os.environ, 'CDB tests are disabled')

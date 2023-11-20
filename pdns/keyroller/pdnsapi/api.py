@@ -20,12 +20,10 @@ def _sanitize_dnsname(name):
     :return: A DNS Name that has a trailing dot
     :rtype: str
     """
-    if name == '.' or name == '=2E':
+    if name in ['.', '=2E']:
         # lol
         return '=2E'
-    if name[-1] != '.':
-        return name + '.'
-    return name
+    return f'{name}.' if name[-1] != '.' else name
 
 
 class PDNSApi:
@@ -49,7 +47,7 @@ class PDNSApi:
             0: '',
             1: '/api/v1',
         }[int(version)]
-        url = baseurl + '{}/servers/{}'.format(api_suffix, server)
+        url = f'{baseurl}{api_suffix}/servers/{server}'
         # Strip double (or more) slashes
         self.url = urllib.parse.urljoin(url, re.sub(r'/{2,}', '/', urllib.parse.urlparse(url).path))
         if apikey is None:
@@ -66,14 +64,7 @@ class PDNSApi:
         self._do_request('', 'GET')
 
     def __repr__(self):
-        return '{}.PDNSApi(apikey="{}", version={}, baseurl="{}", server="{}", timeout={})'.format(
-            __name__,
-            self.apikey,
-            self._version,
-            self._baseurl,
-            self._server,
-            self.timeout
-        )
+        return f'{__name__}.PDNSApi(apikey="{self.apikey}", version={self._version}, baseurl="{self._baseurl}", server="{self._server}", timeout={self.timeout})'
 
     def _do_request(self, uri, method, data=None):
         """
@@ -85,20 +76,21 @@ class PDNSApi:
         :return: a tuple containing the HTTP status code and the JSON response in Python format (i.e. list/dict)
         :rtype: tuple(int, str)
         """
+        full_url = self.url + uri
+
         headers = {
             'Accept': 'application/json',
             'X-API-Key': self.apikey,
         }
-
-        full_url = self.url + uri
-
         if data is not None:
-            if not (isinstance(data, dict) or isinstance(data, list)):
-                raise ValueError('data was passed as a {}, needs to be dict or list!'.format(type(data)))
+            if not isinstance(data, (dict, list)):
+                raise ValueError(
+                    f'data was passed as a {type(data)}, needs to be dict or list!'
+                )
             if method.upper() != 'GET':
-                headers.update({'Content-Type': 'application/json'})
+                headers['Content-Type'] = 'application/json'
 
-        logger.debug('Attempting {} request to {} with data: {}'.format(method, full_url, data))
+        logger.debug(f'Attempting {method} request to {full_url} with data: {data}')
 
         ret = None
         try:
@@ -109,17 +101,18 @@ class PDNSApi:
                 # We don't care that the response was empty
                 pass
             res.raise_for_status()
-            logger.debug("Success! Got a {} response with data: {}".format(res.status_code, ret))
+            logger.debug(f"Success! Got a {res.status_code} response with data: {ret}")
             return res.status_code, ret
         except requests.ConnectionError as e:
-            logger.debug("Got a Connection error: {}".format(str(e)))
-            raise ConnectionError("Unable to connect to {}: {}".format(full_url, e))
+            logger.debug(f"Got a Connection error: {str(e)}")
+            raise ConnectionError(f"Unable to connect to {full_url}: {e}")
         except requests.HTTPError as e:
-            logger.debug("Got an HTTP {} Error: {}".format(e.response.status_code, ret))
-            raise ConnectionError("HTTP error code {} received for {}: {}".format(
-                e.response.status_code, e.request.url, ret.get('error', ret)))
+            logger.debug(f"Got an HTTP {e.response.status_code} Error: {ret}")
+            raise ConnectionError(
+                f"HTTP error code {e.response.status_code} received for {e.request.url}: {ret.get('error', ret)}"
+            )
         except Exception as e:
-            msg = "Error doing {} request to {}: {}".format(method, full_url, e)
+            msg = f"Error doing {method} request to {full_url}: {e}"
             logger.debug(msg)
             raise ConnectionError(msg)
 
@@ -131,8 +124,9 @@ class PDNSApi:
         :return: All the cryptokeys for the zone
         :rtype: list(CryptoKey)
         """
-        code, resp = self._do_request('/zones/{}/cryptokeys'.format(_sanitize_dnsname(zone)),
-                                      'GET')
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/cryptokeys', 'GET'
+        )
 
         if code == 200:
             cryptokeys = []
@@ -141,7 +135,7 @@ class PDNSApi:
                 cryptokeys.append(CryptoKey(**k))
             return cryptokeys
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def get_cryptokey(self, zone, cryptokey):
         """
@@ -155,19 +149,20 @@ class PDNSApi:
         keyid = -1
         if isinstance(cryptokey, CryptoKey):
             keyid = cryptokey.id
-        if isinstance(cryptokey, str) or isinstance(cryptokey, int):
+        if isinstance(cryptokey, (str, int)):
             keyid = cryptokey
         if keyid == -1:
             raise Exception("cryptokey is not a CryptoKey, nor a str or int")
 
-        code, resp = self._do_request('/zones/{}/cryptokeys/{}'.format(_sanitize_dnsname(zone), keyid),
-                                      'GET')
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/cryptokeys/{keyid}', 'GET'
+        )
 
         if code == 200:
             resp.pop('type')
             return CryptoKey(**resp)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def set_cryptokey_active(self, zone, cryptokey, active=True):
         """
@@ -183,21 +178,24 @@ class PDNSApi:
         keyid = -1
         if isinstance(cryptokey, CryptoKey):
             keyid = cryptokey.id
-        if isinstance(cryptokey, str) or isinstance(cryptokey, int):
+        if isinstance(cryptokey, (str, int)):
             keyid = int(cryptokey)
         if keyid == -1:
             raise Exception("cryptokey is not a CryptoKey, nor a str or int")
 
-        code, resp = self._do_request('/zones/{}/cryptokeys/{}'.format(_sanitize_dnsname(zone), keyid),
-                                      'PUT',
-                                      {'active': active})
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/cryptokeys/{keyid}',
+            'PUT',
+            {'active': active},
+        )
         if code == 422:
-            raise Exception('Failed to set cryptokey {} in zone {} to {}: {}'.format(
-                keyid, zone, 'active' if active else 'inactive', resp))
+            raise Exception(
+                f"Failed to set cryptokey {keyid} in zone {zone} to {'active' if active else 'inactive'}: {resp}"
+            )
         if code == 204:
             return self.get_cryptokey(zone, cryptokey)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def set_cryptokey_published(self, zone, cryptokey, published=True):
         """
@@ -212,22 +210,24 @@ class PDNSApi:
         keyid = -1
         if isinstance(cryptokey, CryptoKey):
             keyid = cryptokey.id
-        if isinstance(cryptokey, str) or isinstance(cryptokey, int):
+        if isinstance(cryptokey, (str, int)):
             keyid = int(cryptokey)
         if keyid == -1:
             raise Exception("cryptokey is not a CryptoKey, nor a str or int")
 
-        code, resp = self._do_request('/zones/{}/cryptokeys/{}'.format(_sanitize_dnsname(zone), keyid),
-                                      'PUT',
-                                      {'published': published,
-                                       'active': True})
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/cryptokeys/{keyid}',
+            'PUT',
+            {'published': published, 'active': True},
+        )
         if code == 422:
-            raise Exception('Failed to set cryptokey {} in zone {} to {}: {}'.format(
-                keyid, zone, 'published' if published else 'unpublished', resp))
+            raise Exception(
+                f"Failed to set cryptokey {keyid} in zone {zone} to {'published' if published else 'unpublished'}: {resp}"
+            )
         if code == 204:
             return self.get_cryptokey(zone, cryptokey)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def publish_cryptokey(self, zone, cryptokey):
 
@@ -250,19 +250,19 @@ class PDNSApi:
         keyid = -1
         if isinstance(cryptokey, CryptoKey):
             keyid = cryptokey.id
-        if isinstance(cryptokey, str) or isinstance(cryptokey, int):
+        if isinstance(cryptokey, (str, int)):
             keyid = cryptokey
         if keyid == -1:
             raise Exception("cryptokey is not a CryptoKey, nor a str or int")
-        code, resp = self._do_request('/zones/{}/cryptokeys/{}'.format(_sanitize_dnsname(zone), keyid),
-                                      'DELETE')
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/cryptokeys/{keyid}', 'DELETE'
+        )
         if code == 422:
-            raise Exception('Failed to remove cryptokey {} in zone {}: {}'.format(
-                keyid, zone, resp))
+            raise Exception(f'Failed to remove cryptokey {keyid} in zone {zone}: {resp}')
         if code == 204:
             return
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def add_cryptokey(self, zone, keytype='zsk', active=False, content=None, algo=None, bits=None, published=True):
         """
@@ -285,26 +285,26 @@ class PDNSApi:
                 'published': published}
 
         if content is not None:
-            data.update({'content': content})
+            data['content'] = content
 
         if algo is not None:
             algo = pdnsapi.cryptokey.shorthand_to_algo.get(algo, algo)
-            data.update({'algorithm': algo})
+            data['algorithm'] = algo
 
         if bits is not None:
-            data.update({'bits': bits})
+            data['bits'] = bits
 
-        code, resp = self._do_request('/zones/{}/cryptokeys'.format(_sanitize_dnsname(zone)),
-                                      'POST',
-                                      data)
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/cryptokeys', 'POST', data
+        )
 
         if code == 422:
-            raise Exception('Unable to create CryptoKey in zone {}: {}'.format(zone, resp))
+            raise Exception(f'Unable to create CryptoKey in zone {zone}: {resp}')
         if code == 201:
             resp.pop('type')
             return CryptoKey(**resp)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def get_zones(self):
         """
@@ -318,7 +318,7 @@ class PDNSApi:
         if code == 200:
             return [Zone(**zone) for zone in resp]
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def get_zone(self, zone):
         """
@@ -327,13 +327,12 @@ class PDNSApi:
         :param str zone: The zone we want the full contents for
         :return: a :class:`pdnsapi.zone.Zone`
         """
-        code, resp = self._do_request('/zones/{}'.format(_sanitize_dnsname(zone)),
-                                      'GET')
+        code, resp = self._do_request(f'/zones/{_sanitize_dnsname(zone)}', 'GET')
 
         if code == 200:
             return Zone(**resp)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def bump_soa(self, zone, serial=None):
         """
@@ -344,43 +343,39 @@ class PDNSApi:
         :return: a :class:`pdnsapi.zone.Zone`
         """
 
-        soa = None
         content = self.get_zone(zone)
-        for rrset in content.rrsets:
-            if rrset.rtype == "SOA" :
-                soa = rrset
-                break
-
+        soa = next((rrset for rrset in content.rrsets if rrset.rtype == "SOA"), None)
         if soa is None:
             raise Exception('No such SOA record')
 
-        
+
         newcontent = soa.records[0].content.split(" ")
-        if serial != None:
-            newcontent[2] = serial
-        else:
-            newcontent[2] = str(int(newcontent[2]) + 1)
-        code, resp = self._do_request('/zones/{}'.format(_sanitize_dnsname(zone)),
-                                      'PATCH',
-                                      {
-                                          "rrsets": [{
-                                              "name": soa.name,
-                                              "type": soa.rtype,
-                                              "ttl": soa.ttl,
-                                              "changetype": "REPLACE",
-                                              "records": [
-                                                  {
-                                                      "content": " ".join(newcontent),
-                                                      "disabled": soa.records[0].disabled
-                                                  }
-                                              ]
-                                          }]
-                                      })
+        newcontent[2] = serial if serial != None else str(int(newcontent[2]) + 1)
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}',
+            'PATCH',
+            {
+                "rrsets": [
+                    {
+                        "name": soa.name,
+                        "type": soa.rtype,
+                        "ttl": soa.ttl,
+                        "changetype": "REPLACE",
+                        "records": [
+                            {
+                                "content": " ".join(newcontent),
+                                "disabled": soa.records[0].disabled,
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
 
         if code == 204:
             return self.get_zone(zone)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def set_zone_param(self, zone, param, value):
         """
@@ -391,13 +386,12 @@ class PDNSApi:
         :return:
         """
         zonename = _sanitize_dnsname(zone)
-        code, resp = self._do_request('/zones/{}'.format(zonename),
-                                      'PUT', {param: value})
+        code, resp = self._do_request(f'/zones/{zonename}', 'PUT', {param: value})
 
         if code == 204:
             return self.get_zone(zonename)
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def get_zone_metadata(self, zone, kind=''):
         """
@@ -407,8 +401,10 @@ class PDNSApi:
         :param kind: The zone metadata kind to retrieve. If this is an empty string, all zone metadata is retrieved
         :return: A list of :class:`pdnsapi.metadata.ZoneMetadata` objects
         """
-        code, resp = self._do_request('/zones/{}/metadata{}'.format(_sanitize_dnsname(zone), '/' + kind if len(kind) else ''),
-                                      'GET')
+        code, resp = self._do_request(
+            f"/zones/{_sanitize_dnsname(zone)}/metadata{f'/{kind}' if len(kind) else ''}",
+            'GET',
+        )
 
         if code == 200:
             if kind == '':
@@ -416,30 +412,33 @@ class PDNSApi:
             else:
                 return ZoneMetadata(resp['kind'], resp['metadata'])
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def set_zone_metadata(self, zone, kind, metadata):
         if not isinstance(metadata, list):
             metadata = [metadata]
         obj = {'metadata': metadata}
-        code, resp = self._do_request('/zones/{}/metadata/{}'.format(_sanitize_dnsname(zone), kind),
-                                      'PUT',
-                                      obj)
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/metadata/{kind}', 'PUT', obj
+        )
 
         if code == 422:
-            raise Exception('Failed to set metadata {} in zone {} to {}: {}'.format(kind, zone, metadata, resp))
+            raise Exception(
+                f'Failed to set metadata {kind} in zone {zone} to {metadata}: {resp}'
+            )
         if code == 200:
             return ZoneMetadata(resp['kind'], resp['metadata'])
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')
 
     def delete_zone_metadata(self, zone, kind):
-        code, resp = self._do_request('/zones/{}/metadata/{}'.format(_sanitize_dnsname(zone), kind),
-                                      'DELETE')
+        code, resp = self._do_request(
+            f'/zones/{_sanitize_dnsname(zone)}/metadata/{kind}', 'DELETE'
+        )
 
         if code == 422:
-            raise Exception('Failed to remove metadata {} in zone {}: {}'.format(kind, zone, resp))
+            raise Exception(f'Failed to remove metadata {kind} in zone {zone}: {resp}')
         if code == 200:
             return
 
-        raise Exception('Unexpected response: {}: {}'.format(code, resp))
+        raise Exception(f'Unexpected response: {code}: {resp}')

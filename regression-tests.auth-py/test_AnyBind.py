@@ -39,10 +39,10 @@ www.example.org.             3600 IN A    192.0.2.5
 
     @classmethod
     def setUpSockets(cls):
-         print("Setting up UDP socket..")
-         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-         cls._sock.settimeout(2.0)
-         cls._sock.connect((cls._PREFIX + ".2", cls._authPort))
+        print("Setting up UDP socket..")
+        cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        cls._sock.settimeout(2.0)
+        cls._sock.connect((f"{cls._PREFIX}.2", cls._authPort))
 
     def testA(self):
         """Test to see if we get a reply from 127.0.0.2 if auth is bound to ANY address"""

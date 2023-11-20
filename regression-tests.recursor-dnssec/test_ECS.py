@@ -41,7 +41,7 @@ ecs-add-for=0.0.0.0/0
         self.assertRRsetInAnswer(res, expected)
         # this will break if you are not looking for the first RR, sorry!
         if expectedFirstTTL is not None:
-            self.assertTrue(res.answer[0].ttl == expectedFirstTTL or res.answer[0].ttl == expectedFirstTTL - 1)
+            self.assertTrue(res.answer[0].ttl in [expectedFirstTTL, expectedFirstTTL - 1])
         else:
             expectedFirstTTL = res.answer[0].ttl
         self.assertEqual(res.edns, query.edns)
@@ -82,10 +82,10 @@ ecs-add-for=0.0.0.0/0
         global ecsReactorv6Running
         print("Launching responders..")
 
-        address = cls._PREFIX + '.21'
-        port = 53
-
+        address = f'{cls._PREFIX}.21'
         if not ecsReactorRunning:
+            port = 53
+
             reactor.listenUDP(port, UDPECSResponder(), interface=address)
             ecsReactorRunning = True
 
@@ -614,12 +614,19 @@ class UDPECSResponder(DatagramProtocol):
         response.flags |= dns.flags.AA
         ecso = None
 
-        if (request.question[0].name == dns.name.from_text(nameECS) or request.question[0].name == dns.name.from_text(nameECSInvalidScope)) and request.question[0].rdtype == dns.rdatatype.TXT:
+        if (
+            request.question[0].name
+            in [
+                dns.name.from_text(nameECS),
+                dns.name.from_text(nameECSInvalidScope),
+            ]
+            and request.question[0].rdtype == dns.rdatatype.TXT
+        ):
 
             text = emptyECSText
             for option in request.options:
                 if option.otype == clientsubnetoption.ASSIGNED_OPTION_CODE and isinstance(option, clientsubnetoption.ClientSubnetOption):
-                    text = self.ipToStr(option) + '/' + str(option.mask)
+                    text = f'{self.ipToStr(option)}/{str(option.mask)}'
 
                     # Send a scope more specific than the received source for nameECSInvalidScope
                     if request.question[0].name == dns.name.from_text(nameECSInvalidScope):

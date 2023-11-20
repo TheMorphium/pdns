@@ -33,7 +33,7 @@ def parse_algo(algo):
         res = DNSKEY_MNEMONIC_TO_ALGO.get(algo.upper())
 
     if DNSKEY_ALGO_TO_MNEMONIC.get(res) is None:
-        raise Exception('Unknown key algorithm {}'.format(algo))
+        raise Exception(f'Unknown key algorithm {algo}')
 
     return res
 
@@ -45,7 +45,7 @@ def validate_api(api):
 def validate_keytype(keytype):
     keytype = keytype.lower()
     if keytype not in ('ksk', 'zsk', 'csk'):
-        raise Exception('{} is not a valid key type'.format(keytype))
+        raise Exception(f'{keytype} is not a valid key type')
 
 
 def get_keystyle(zone, api):
@@ -66,11 +66,11 @@ def get_keystyle(zone, api):
     cryptokeys = api.get_cryptokeys(zone)
 
     if not len(cryptokeys):
-        raise Exception('No cryptokeys for zone {}'.format(zone))
+        raise Exception(f'No cryptokeys for zone {zone}')
 
-    got_ksk = any([cryptokey.keytype.lower() == 'ksk' for cryptokey in cryptokeys])
-    got_zsk = any([cryptokey.keytype.lower() == 'zsk' for cryptokey in cryptokeys])
-    got_csk = any([cryptokey.keytype.lower() == 'csk' for cryptokey in cryptokeys])
+    got_ksk = any(cryptokey.keytype.lower() == 'ksk' for cryptokey in cryptokeys)
+    got_zsk = any(cryptokey.keytype.lower() == 'zsk' for cryptokey in cryptokeys)
+    got_csk = any(cryptokey.keytype.lower() == 'csk' for cryptokey in cryptokeys)
 
     if got_csk and not any([got_ksk, got_zsk]):
         return 'single'
